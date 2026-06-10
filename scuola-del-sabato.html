@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scuola del Sabato — Registrazione</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ---------------------------------------------------------------
+     BRAND TOKENS — Italienska Skolan Stockholm.
+     Derived from the official horizontal logo: royal blue (#4060A8)
+     wordmark + constellation, with a light sky-blue (#78B0E0) accent.
+     Deep navy for headings/text, light-blue band for the header and
+     info notes. Headline font is TT Firs Neue (not freely hostable);
+     the school's fallback stack is Poppins / Raleway, used here too.
+     (--isk-band-ink / --isk-band-bg carry the light-blue section band.)
+     --------------------------------------------------------------- */
+  :root {
+    --isk-navy:      #20325C;  /* deep navy — headings, totals, text */
+    --isk-blue:      #4060A8;  /* logo royal blue — buttons, accents, focus, child border */
+    --isk-blue-soft: #78B0E0;  /* logo light sky-blue */
+    --isk-blue-pale: #B9D2EE;  /* lighter blue */
+    --isk-red:       #D33A3A;  /* error / required marks */
+    --isk-band-ink:  #2E4880;  /* text on the light-blue band / section subheads */
+    --isk-band-bg:   #E9F1FB;  /* light-blue banner + info-note background */
+    --isk-bg:        #F3F6FB;  /* page background (faint blue-grey) */
+    --isk-surface:   #FFFFFF;
+    --isk-text:      #20325C;
+    --isk-muted:     #5C6678;
+    --isk-border:    #D5DEEC;
+    --isk-error:     #D33A3A;
+    --isk-radius:    12px;
+    --isk-space:     8px;
+    --font-head: 'Poppins', 'Raleway', 'Helvetica Neue', Arial, sans-serif;
+    --font-body: 'Raleway', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--isk-bg);
+    color: var(--isk-text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sds-wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  /* Header banner */
+  .sds-banner {
+    background: var(--isk-band-bg);
+    border-radius: var(--isk-radius);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .sds-banner img.logo { height: 56px; width: auto; }
+  .sds-banner h1 {
+    font-family: var(--font-head);
+    font-weight: 700;
+    color: var(--isk-band-ink);
+    font-size: 26px;
+    margin: 0;
+  }
+  .sds-hero {
+    width: 100%;
+    border-radius: var(--isk-radius);
+    margin-bottom: 24px;
+    display: block;
+  }
+
+  /* Sections */
+  .sds-section {
+    background: var(--isk-surface);
+    border: 1px solid var(--isk-border);
+    border-radius: var(--isk-radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .sds-section > h2 {
+    font-family: var(--font-head);
+    font-weight: 600;
+    color: var(--isk-navy);
+    font-size: 20px;
+    margin: 0 0 4px;
+  }
+  .sds-section > .sds-section-sub {
+    color: var(--isk-muted);
+    font-size: 14px;
+    margin: 0 0 16px;
+  }
+
+  /* Fields */
+  .sds-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .sds-field { display: flex; flex-direction: column; margin-bottom: 16px; }
+  .sds-field[hidden] { display: none; }
+  .sds-field.full, .sds-test-msg.full { grid-column: 1 / -1; }
+  .sds-field label {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 6px;
+    color: var(--isk-text);
+  }
+  .sds-field label .req { color: var(--isk-red); margin-left: 2px; }
+  .sds-field .hint { color: var(--isk-muted); font-size: 13px; margin-top: 4px; }
+  .sds-field input,
+  .sds-field select,
+  .sds-field textarea {
+    font-family: var(--font-body);
+    font-size: 15px;
+    padding: 10px 12px;
+    border: 1px solid var(--isk-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--isk-text);
+    width: 100%;
+  }
+  .sds-field textarea { min-height: 90px; resize: vertical; }
+  .sds-field input[type="checkbox"],
+  .sds-field input[type="radio"] { width: auto; }
+  .sds-field input:focus,
+  .sds-field select:focus,
+  .sds-field textarea:focus {
+    outline: none;
+    border-color: var(--isk-blue);
+    box-shadow: 0 0 0 3px rgba(58, 77, 166, 0.15);
+  }
+  .sds-field.invalid input,
+  .sds-field.invalid select { border-color: var(--isk-error); }
+  .sds-error { color: var(--isk-error); font-size: 13px; margin-top: 4px; display: none; }
+  .sds-field.invalid .sds-error { display: block; }
+  .sds-elig-msg {
+    display: none; margin-top: 8px; padding: 10px 12px; border-radius: 8px;
+    font-size: 14px; background: #FDECEF; border: 1px solid #F3C0CD; color: var(--isk-error);
+  }
+  .sds-elig-msg.show { display: block; }
+  .sds-info-note {
+    background: var(--isk-band-bg); border: 1px solid #C5D8F0; color: var(--isk-band-ink);
+    border-radius: 8px; padding: 12px 14px; font-size: 14px;
+  }
+  .sds-test-msg {
+    background: #FDECEF; border: 1px solid #F3C0CD; color: var(--isk-error);
+    border-radius: 8px; padding: 14px 16px; font-size: 15px; line-height: 1.5;
+  }
+
+  /* Calendar / "new this year" announcement */
+  .sds-highlight {
+    background: var(--isk-band-bg); border: 1px solid #C5D8F0; color: var(--isk-band-ink);
+    border-radius: 8px; padding: 12px 16px; font-size: 15px; margin-bottom: 16px;
+  }
+  .sds-highlight strong { color: var(--isk-navy); }
+  .sds-term-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .sds-term {
+    border: 1px solid var(--isk-border); border-left: 4px solid var(--isk-blue);
+    border-radius: 10px; padding: 16px 18px; background: #fcfdff;
+  }
+  .sds-term h3 {
+    font-family: var(--font-head); font-size: 15px; color: var(--isk-navy); margin: 0 0 10px;
+  }
+  .sds-term ul { margin: 0; padding-left: 18px; }
+  .sds-term li { font-size: 14px; margin-bottom: 6px; }
+  .sds-term li:last-child { margin-bottom: 0; }
+
+  /* Custom date control (Giorno / Mese / Anno searchable combos) */
+  .sds-date { display: flex; gap: 6px; }
+  .sds-combo { position: relative; }
+  .sds-combo[data-seg="day"]   { flex: 0 0 64px; }
+  .sds-combo[data-seg="month"] { flex: 1 1 auto; min-width: 0; }
+  .sds-combo[data-seg="year"]  { flex: 0 0 78px; }
+  .sds-combo input { padding-left: 10px; padding-right: 8px; }
+  .sds-combo input { width: 100%; }
+  .sds-combo-list {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
+    list-style: none; margin: 0; padding: 4px; max-height: 230px; overflow-y: auto;
+    background: #fff; border: 1px solid var(--isk-border); border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(31, 42, 107, 0.14); display: none;
+  }
+  .sds-combo-list.show { display: block; }
+  .sds-combo-opt { padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 15px; }
+  .sds-combo-opt:hover, .sds-combo-opt.active { background: var(--isk-band-bg); }
+
+  /* Radio group */
+  .sds-radio-group { display: flex; gap: 20px; align-items: center; }
+  .sds-radio-group label { font-weight: 400; display: flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; }
+
+  /* Child block */
+  .sds-child {
+    border: 1px solid var(--isk-border);
+    border-left: 4px solid var(--isk-blue);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+    background: #fcfdff;
+  }
+  .sds-child-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .sds-child-head h3 {
+    font-family: var(--font-head);
+    font-size: 16px;
+    color: var(--isk-navy);
+    margin: 0;
+  }
+  .sds-subhead {
+    font-family: var(--font-head);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--isk-band-ink);
+    margin: 20px 0 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Buttons */
+  .sds-btn {
+    font-family: var(--font-head);
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 8px;
+    padding: 12px 22px;
+    cursor: pointer;
+    border: none;
+    transition: filter .15s ease, background .15s ease;
+  }
+  .sds-btn-primary { background: var(--isk-blue); color: #fff; }
+  .sds-btn-primary:hover { filter: brightness(1.08); }
+  .sds-btn-secondary {
+    background: transparent;
+    color: var(--isk-blue);
+    border: 1px solid var(--isk-blue);
+  }
+  .sds-btn-secondary:hover { background: rgba(58,77,166,0.06); }
+  .sds-btn-ghost-danger {
+    background: transparent; color: var(--isk-red);
+    border: none; font-size: 13px; cursor: pointer; padding: 4px 8px;
+  }
+  .sds-btn[disabled] { opacity: .55; cursor: not-allowed; }
+
+  /* Order summary */
+  .sds-summary-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .sds-summary-table th, .sds-summary-table td {
+    text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--isk-border); font-size: 14px;
+  }
+  .sds-summary-table th { color: var(--isk-muted); font-weight: 600; }
+  .sds-summary-table td.amount, .sds-summary-table th.amount { text-align: right; white-space: nowrap; }
+  .sds-summary-table tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; color: var(--isk-navy); }
+  .sds-discount { color: #2e7d32; }
+  .sds-note {
+    background: #FFF6E6; border: 1px solid #F2D59B; border-radius: 8px;
+    padding: 14px 16px; font-size: 14px; margin-top: 16px;
+  }
+  .sds-note strong { color: var(--isk-red); }
+
+  .sds-consent { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+  .sds-consent input { margin-top: 3px; }
+
+  /* Family semester selector */
+  .sds-semester-group { flex-direction: column; align-items: flex-start; gap: 10px; }
+
+  /* Voluntary support contribution */
+  .sds-support { border-top: 1px solid var(--isk-border); margin-top: 20px; padding-top: 18px; }
+  .sds-support h3 {
+    font-family: var(--font-head); font-size: 16px; color: var(--isk-navy); margin: 0 0 6px;
+  }
+  .sds-support-note { font-size: 13px; color: var(--isk-muted); margin: 0 0 14px; line-height: 1.5; }
+  .sds-support-chips { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .sds-chip {
+    font-family: var(--font-body); font-size: 14px; cursor: pointer;
+    border: 1px solid var(--isk-border); background: #fff; color: var(--isk-text);
+    border-radius: 999px; padding: 8px 16px; transition: background .12s ease, border-color .12s ease;
+  }
+  .sds-chip:hover { border-color: var(--isk-blue); }
+  .sds-chip.active { background: var(--isk-navy); color: #fff; border-color: var(--isk-navy); }
+  .sds-support-custom { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+  .sds-support-custom input { width: 110px; }
+
+  .sds-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+
+  .sds-form-status { margin-top: 16px; font-size: 14px; }
+  .sds-form-status.err { color: var(--isk-error); }
+  .sds-form-status.ok { color: #2e7d32; }
+
+  @media (max-width: 640px) {
+    .sds-grid { grid-template-columns: 1fr; }
+    .sds-term-grid { grid-template-columns: 1fr; }
+    .sds-banner h1 { font-size: 21px; }
+  }
+</style>
+</head>
+<body>
+<div class="sds-wrap">
+
+  <!-- HEADER -->
+  <div class="sds-banner">
+    <!-- TODO: replace with the official logo asset (see CLAUDE.md) -->
+    <img class="logo" src="logo-italienska-skolan.png" alt="Italienska Skolan Stockholm"
+         onerror="this.style.display='none'" />
+    <h1>Scuola del Sabato — Registrazione</h1>
+  </div>
+  <!-- Optional hero illustration: drop the file in and uncomment
+  <img class="sds-hero" src="hero.png" alt="" /> -->
+
+  <!-- ============ CALENDAR / "NEW THIS YEAR" ============ -->
+  <div class="sds-section">
+    <h2>Calendario dell'anno</h2>
+    <div class="sds-highlight">
+      <strong>Novità di quest'anno:</strong> aumentiamo il numero di lezioni:
+      da <strong>10</strong> passiamo a <strong>12 incontri</strong> per ogni semestre.
+    </div>
+    <div class="sds-term-grid">
+      <div class="sds-term">
+        <h3>Semestre autunnale (HT26) — 12 incontri</h3>
+        <ul>
+          <li><strong>Inizio:</strong> 12 settembre</li>
+          <li><strong>Fine:</strong> 12 dicembre</li>
+          <li><strong>Vacanze:</strong> höstlov 24 ottobre – 1 novembre; jullov 19 dicembre – 10 gennaio</li>
+        </ul>
+      </div>
+      <div class="sds-term">
+        <h3>Semestre primaverile (VT27) — 12 incontri</h3>
+        <ul>
+          <li><strong>Inizio:</strong> 16 gennaio</li>
+          <li><strong>Fine:</strong> 15 maggio</li>
+          <li><strong>Vacanze:</strong> sportlov 27 febbraio – 7 marzo; påsklov 27 marzo – 4 aprile</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <form id="sds-form" novalidate>
+
+    <!-- ============ PARENT ============ -->
+    <div class="sds-section">
+      <h2>Informazioni Genitore</h2>
+      <div class="sds-grid">
+        <div class="sds-field">
+          <label>Nome <span class="req">*</span></label>
+          <input type="text" name="parent_first" required />
+          <div class="sds-error">Campo obbligatorio.</div>
+        </div>
+        <div class="sds-field">
+          <label>Cognome <span class="req">*</span></label>
+          <input type="text" name="parent_last" required />
+          <div class="sds-error">Campo obbligatorio.</div>
+        </div>
+        <div class="sds-field">
+          <label>Posta elettronica <span class="req">*</span></label>
+          <input type="email" name="parent_email" required placeholder="nome@esempio.com" />
+          <div class="sds-error">Inserisci un'email valida.</div>
+        </div>
+        <div class="sds-field">
+          <label>Telefono <span class="req">*</span></label>
+          <input type="tel" name="parent_phone" required placeholder="+46 ..." />
+          <div class="sds-error">Campo obbligatorio.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ CHILDREN ============ -->
+    <div class="sds-section">
+      <h2>Informazioni Bambini</h2>
+      <p class="sds-section-sub">Aggiungi un blocco per ogni bambino/a che vuoi iscrivere.</p>
+      <div id="sds-children"></div>
+      <button type="button" class="sds-btn sds-btn-secondary" id="sds-add-child">+ Aggiungi un bambino/a</button>
+    </div>
+
+    <!-- ============ ORDER SUMMARY ============ -->
+    <div class="sds-section" id="sds-summary-section">
+      <h2>Riepilogo dell'ordine</h2>
+      <p class="sds-section-sub">Il costo viene calcolato automaticamente in base ai corsi selezionati.</p>
+
+      <div class="sds-field full" id="sds-semester-field">
+        <label>Per quali semestri vuoi iscrivere? <span class="req">*</span></label>
+        <div class="sds-radio-group sds-semester-group" id="sds-semester-group"></div>
+        <div class="hint">Iscrivendoti per <strong>entrambi i semestri</strong> ottieni uno sconto.</div>
+      </div>
+
+      <table class="sds-summary-table" id="sds-summary">
+        <thead>
+          <tr><th>Bambino</th><th>Corso</th><th class="amount">Costo</th></tr>
+        </thead>
+        <tbody id="sds-summary-body"></tbody>
+        <tfoot id="sds-summary-foot"></tfoot>
+      </table>
+
+      <div class="sds-support" id="sds-support">
+        <h3>Sostieni il progetto <span style="font-weight:400;color:var(--isk-muted);font-size:14px">(facoltativo)</span></h3>
+        <p class="sds-support-note">
+          Italienska Skolan Stockholm è un'associazione <strong>senza scopo di lucro</strong>:
+          non distribuiamo utili né dividendi ai soci. Ogni contributo volontario sostiene
+          direttamente il progetto della Scuola del Sabato.
+        </p>
+        <div class="sds-support-chips" id="sds-support-chips">
+          <button type="button" class="sds-chip active" data-amount="0">Nessun contributo</button>
+          <!-- suggested-amount chips injected here -->
+          <span class="sds-support-custom">
+            <label for="sds-support-custom-input" style="font-weight:600">Altro:</label>
+            <input type="number" id="sds-support-custom-input" min="0" step="10" inputmode="numeric"
+                   placeholder="0" aria-label="Altro importo" />
+            <span>SEK</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="sds-note">
+        <strong>Importante:</strong> dopo aver inviato la registrazione, riceverai le istruzioni
+        per il pagamento tramite <strong>Swish</strong>. Il posto alla Scuola del Sabato sarà confermato
+        solo dopo il corretto completamento del pagamento.
+      </div>
+    </div>
+
+    <!-- ============ CONSENT + SUBMIT ============ -->
+    <div class="sds-section">
+      <div class="sds-field full">
+        <label class="sds-consent">
+          <input type="checkbox" name="consent" required />
+          <span>Acconsento al trattamento dei dati personali per la gestione dell'iscrizione,
+          secondo l'informativa sulla privacy della Italienska Skolan Stockholm. <span class="req">*</span></span>
+        </label>
+        <div class="sds-error">È necessario il consenso per procedere.</div>
+      </div>
+
+      <div class="sds-actions">
+        <button type="submit" class="sds-btn sds-btn-primary" id="sds-submit">Invia registrazione</button>
+      </div>
+      <div class="sds-form-status" id="sds-status"></div>
+    </div>
+
+  </form>
+</div>
+
+<!-- Hidden template for one child block -->
+<template id="sds-child-template">
+  <div class="sds-child" data-child>
+    <div class="sds-child-head">
+      <h3>Bambino <span class="sds-child-num"></span></h3>
+      <button type="button" class="sds-btn-ghost-danger" data-remove-child>✕ Rimuovi</button>
+    </div>
+
+    <div class="sds-grid">
+      <div class="sds-field">
+        <label>Nome <span class="req">*</span></label>
+        <input type="text" data-field="first" required />
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+      <div class="sds-field">
+        <label>Cognome <span class="req">*</span></label>
+        <input type="text" data-field="last" required />
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+      <div class="sds-field">
+        <label>Data di Nascita <span class="req">*</span></label>
+        <div class="sds-date" data-date>
+          <div class="sds-combo" data-seg="day">
+            <input type="text" inputmode="numeric" autocomplete="off" placeholder="Giorno" data-combo-input aria-label="Giorno" />
+            <ul class="sds-combo-list" data-combo-list></ul>
+          </div>
+          <div class="sds-combo" data-seg="month">
+            <input type="text" autocomplete="off" placeholder="Mese" data-combo-input aria-label="Mese" />
+            <ul class="sds-combo-list" data-combo-list></ul>
+          </div>
+          <div class="sds-combo" data-seg="year">
+            <input type="text" inputmode="numeric" autocomplete="off" placeholder="Anno" data-combo-input aria-label="Anno" />
+            <ul class="sds-combo-list" data-combo-list></ul>
+          </div>
+        </div>
+        <input type="hidden" data-field="dob" required />
+        <div class="hint">Quando è nato/a il bambino/a?</div>
+        <div class="sds-error">Inserisci una data di nascita completa.</div>
+      </div>
+      <div class="sds-field">
+        <label>Corso <span class="req">*</span></label>
+        <select data-field="course">
+          <option value="">Inserisci prima la data di nascita…</option>
+        </select>
+        <div class="hint">Il corso viene assegnato automaticamente in base alla data di nascita.</div>
+        <div class="sds-elig-msg" data-elig-msg></div>
+      </div>
+      <div class="sds-field full" data-giocar-ack hidden>
+        <div class="sds-info-note">
+          Il corso <strong>Giocar Cantando</strong> necessita della presenza di un genitore
+          per l'intera durata della lezione.
+        </div>
+        <label class="sds-consent" style="margin-top:10px">
+          <input type="checkbox" data-field="giocar_ack" />
+          <span>Confermo che un genitore sarà presente per l'intera durata della lezione. <span class="req">*</span></span>
+        </label>
+        <div class="sds-error">È necessario confermare la presenza di un genitore.</div>
+      </div>
+
+      <!-- Returning student — asked of every child, regardless of date of birth -->
+      <div class="sds-field full" data-attended>
+        <label>Hai frequentato l'anno scorso? <span class="req">*</span></label>
+        <div class="sds-radio-group">
+          <label><input type="radio" data-field="attended" value="No" /> No</label>
+          <label><input type="radio" data-field="attended" value="Sì" /> Sì</label>
+        </div>
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+      <div class="sds-field full" data-attended-class hidden>
+        <label>In che classe? <span class="req">*</span></label>
+        <select data-field="attended_class">
+          <option value="">Seleziona…</option>
+          <option>In Classe Montagna (Maestra Anna)</option>
+          <option>In classe Berg (Maestra Marisa)</option>
+          <option>In classe Artemisia o Raffaello</option>
+          <option>In classe Leonardo</option>
+        </select>
+        <div class="sds-error">Seleziona una classe.</div>
+      </div>
+      <div class="sds-test-msg full" data-test-msg hidden>
+        <strong>Sei invitato ad un test per comprovare la conoscenza della lingua italiana.</strong><br />
+        Il test si terrà <strong>Sabato 29 Agosto dalle 10.00 alle 11.00</strong>.
+      </div>
+    </div>
+
+    <!-- Language assessment (per child) -->
+    <div class="sds-subhead" data-hide-on-test>Livello della lingua italiana</div>
+    <div class="sds-grid" data-hide-on-test>
+      <div class="sds-field">
+        <label>Capisce l'italiano parlato? <span class="req">*</span></label>
+        <select data-field="it_understand" data-lang required></select>
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+      <div class="sds-field">
+        <label>Parla l'italiano? <span class="req">*</span></label>
+        <select data-field="it_speak" data-lang required></select>
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+      <div class="sds-field" data-rw>
+        <label>Sa leggere in italiano? <span class="req">*</span></label>
+        <select data-field="it_read" data-lang required></select>
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+      <div class="sds-field" data-rw>
+        <label>Sa scrivere in italiano? <span class="req">*</span></label>
+        <select data-field="it_write" data-lang required></select>
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+    </div>
+
+    <div class="sds-subhead" data-hide-on-test>Livello della lingua svedese</div>
+    <div class="sds-grid" data-hide-on-test>
+      <div class="sds-field">
+        <label>Capisce lo svedese parlato? <span class="req">*</span></label>
+        <select data-field="sv_understand" data-lang required></select>
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+      <div class="sds-field">
+        <label>Parla lo svedese? <span class="req">*</span></label>
+        <select data-field="sv_speak" data-lang required></select>
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+      <div class="sds-field" data-rw>
+        <label>Sa leggere in svedese? <span class="req">*</span></label>
+        <select data-field="sv_read" data-lang required></select>
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+      <div class="sds-field" data-rw>
+        <label>Sa scrivere in svedese? <span class="req">*</span></label>
+        <select data-field="sv_write" data-lang required></select>
+        <div class="sds-error">Campo obbligatorio.</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+/* =====================================================================
+   CONFIG — all placeholder values are flagged. Confirm with the school.
+   ===================================================================== */
+const SDS_CONFIG = {
+  // Apps Script web-app deployment URL (doPost). Paste after deploying.
+  appsScriptUrl: 'PASTE_APPS_SCRIPT_DEPLOYMENT_URL_HERE',
+
+  maxChildren: 5,
+  currency: 'SEK',
+
+  // Courses offered — assigned automatically from the date of birth by
+  // computeEligibility() (ids must match). `price` is PER SEMESTER (HT26 or VT27);
+  // `yearPrice` is the discounted price for BOTH semesters together (less than
+  // 2× price). The school year is two 12-lesson semesters. (Infanzia = 3–5,
+  // Primaria = 6–12.)
+  courses: [
+    { id: 'sds_3_5',         name: 'Infanzia (3–5 anni)',  price: 2800, yearPrice: 5000 },
+    { id: 'sds_6_12',        name: 'Primaria (6–12 anni)',  price: 3600, yearPrice: 6600 },
+    { id: 'giocar_cantando', name: 'Giocar Cantando',       price: 1200, yearPrice: 2200 },
+  ],
+
+  // Family-level semester choice (one selection applies to all children).
+  semesters: [
+    { id: 'both', name: 'Entrambi i semestri (HT26 + VT27)', count: 2 },
+    { id: 'ht26', name: 'Solo autunno (HT26)',               count: 1 },
+    { id: 'vt27', name: 'Solo primavera (VT27)',             count: 1 },
+  ],
+
+  // The "both semesters" saving is built into each course's `yearPrice` above
+  // (per-course: e.g. Infanzia 2×2800=5600 → 5000, so 600 off). No separate flag.
+
+  // Multi-child discount: a flat SEK amount off EACH paying child, applied only
+  // when more than one child is registered (≥2 paying children). Set to 0 to disable.
+  multiChildDiscountSEK: 100,
+
+  // Voluntary support contribution. Italienska Skolan is a non-profit; this is an
+  // optional extra a family can add to help fund the project.
+  support: {
+    suggested: [100, 200, 500], // ⚠️ PLACEHOLDER chip amounts (SEK) — confirm.
+  },
+
+  // Language-level dropdown options. 'Per niente' is only offered for the younger
+  // courses (3–5 anni and Giocar Cantando) — see languageOptionsForCourse().
+  languageLevels: ['Sì, perfettamente', 'La maggior parte delle volte', 'Poco', 'Per niente'],
+  languageLevelYoungOnly: ['Per niente'], // options shown only for sds_3_5 + giocar_cantando
+};
+
+/* ===================================================================== */
+
+const fmtMoney = (n) =>
+  new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 }).format(Math.round(n)) + ' ' + SDS_CONFIG.currency;
+
+const childrenEl = document.getElementById('sds-children');
+const tmpl = document.getElementById('sds-child-template');
+let childCount = 0;
+let sdsUid = 0; // unique suffix for radio-group names
+let sdsSupport = 0; // voluntary support contribution (SEK)
+
+function ageFromDob(dobStr) {
+  if (!dobStr) return null;
+  const dob = new Date(dobStr);
+  if (isNaN(dob)) return null;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
+}
+
+/* Eligibility — maps a date of birth to exactly one course, or an error.
+   Contiguous bands, no gaps/overlaps (confirmed with the school):
+     • born before 1 Jan 2014        → error (too old, max 12)
+     • born 2014–2020                → Scuola del Sabato 6–12 anni
+     • born 1 Jan 2021 – 30 Sep 2023 → Scuola del Sabato 3–5 anni
+     • born 1 Oct 2023 – 31 Mar 2026 → Giocar Cantando
+     • born after 31 Mar 2026        → error (too young) */
+const ELIG_MSG = {
+  tooYoung: 'Siamo spiacenti, ma al momento non è possibile iscrivere bambini nati dopo il 31 marzo 2026.',
+  tooOld:   "Siamo spiacenti, ma l'età massima per iscriversi alla Scuola del Sabato è di 12 anni.",
+};
+
+function computeEligibility(dobStr) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((dobStr || '').trim());
+  if (!m) return { courseId: null, error: null, empty: true };
+  const y = +m[1], mo = +m[2]; // mo: 1-12 (day not needed — all cuts fall on month boundaries)
+
+  if (y <= 2013) return { courseId: null, error: ELIG_MSG.tooOld };           // before 1 Jan 2014
+  if (y > 2026 || (y === 2026 && mo >= 4)) return { courseId: null, error: ELIG_MSG.tooYoung }; // after 31 Mar 2026
+
+  if (y >= 2014 && y <= 2020) return { courseId: 'sds_6_12', error: null };   // Primaria (6–12 anni)
+  if (y === 2021 || y === 2022 || (y === 2023 && mo <= 9)) return { courseId: 'sds_3_5', error: null }; // Infanzia, ≤ 30 Sep 2023
+
+  return { courseId: 'giocar_cantando', error: null }; // 1 Oct 2023 – 31 Mar 2026
+}
+
+function applyEligibility(node) {
+  const dob = node.querySelector('[data-field="dob"]');
+  const courseSel = node.querySelector('[data-field="course"]');
+  const msg = node.querySelector('[data-elig-msg]');
+  const elig = computeEligibility(dob.value);
+
+  // Giocar Cantando requires a parent-presence acknowledgment
+  const ackWrap = node.querySelector('[data-giocar-ack]');
+  const ackBox = node.querySelector('[data-field="giocar_ack"]');
+  const isGiocar = elig.courseId === 'giocar_cantando';
+  ackWrap.hidden = !isGiocar;
+  if (!isGiocar) {
+    ackBox.checked = false;
+    ackWrap.classList.remove('invalid');
+  }
+
+  if (elig.error) {
+    fillSelect(courseSel, []);
+    courseSel.value = '';
+    msg.textContent = elig.error;
+    msg.classList.add('show');
+  } else if (elig.courseId) {
+    const course = SDS_CONFIG.courses.find((c) => c.id === elig.courseId);
+    fillSelect(courseSel, course ? [course] : []);
+    courseSel.value = elig.courseId;
+    msg.textContent = '';
+    msg.classList.remove('show');
+  } else {
+    fillSelect(courseSel, [], { placeholder: 'Inserisci prima la data di nascita…' });
+    courseSel.value = '';
+    msg.textContent = '';
+    msg.classList.remove('show');
+  }
+  populateLanguageSelects(node, elig.courseId || null);
+  showReadWriteFields(node, elig.courseId || null);
+  updateSummary();
+}
+
+function fillSelect(sel, options, { placeholder } = {}) {
+  sel.innerHTML = '';
+  if (placeholder) {
+    const o = document.createElement('option');
+    o.value = ''; o.textContent = placeholder;
+    sel.appendChild(o);
+  }
+  options.forEach((opt) => {
+    const o = document.createElement('option');
+    if (typeof opt === 'string') { o.value = opt; o.textContent = opt; }
+    else { o.value = opt.id; o.textContent = opt.name; }
+    sel.appendChild(o);
+  });
+}
+
+/* Language-level options depend on the assigned course: 'Per niente' (and anything in
+   languageLevelYoungOnly) is only offered for 3–5 anni and Giocar Cantando. */
+function languageOptionsForCourse(courseId) {
+  const youngOnly = SDS_CONFIG.languageLevelYoungOnly || [];
+  const isYoung = courseId === 'sds_3_5' || courseId === 'giocar_cantando' || !courseId; // !courseId = not assigned yet → show all
+  return SDS_CONFIG.languageLevels.filter((o) => isYoung || youngOnly.indexOf(o) === -1);
+}
+
+function populateLanguageSelects(node, courseId) {
+  const opts = languageOptionsForCourse(courseId);
+  node.querySelectorAll('select[data-lang]').forEach((sel) => {
+    const prev = sel.value;
+    fillSelect(sel, opts, { placeholder: 'Seleziona…' });
+    if (prev && opts.indexOf(prev) !== -1) sel.value = prev; // keep a still-valid choice
+  });
+}
+
+/* Reading/writing questions only apply to the 6–12 anni course. */
+function showReadWriteFields(node, courseId) {
+  const show = courseId === 'sds_6_12';
+  node.querySelectorAll('[data-rw]').forEach((f) => {
+    f.hidden = !show;
+    const sel = f.querySelector('select');
+    if (sel) { sel.required = show; if (!show) sel.value = ''; }
+  });
+}
+
+/* Returning-student question — asked of every child. */
+const TEST_CLASSES = ['In classe Berg (Maestra Marisa)', 'In classe Leonardo'];
+
+/* Fills the in-block test notice, naming the child and spelling out the outcome,
+   so the test child's path is clear from their own block (the actual submit stays
+   the single button at the bottom). */
+function updateTestNotice(node) {
+  const testMsg = node.querySelector('[data-test-msg]');
+  const firstEl = node.querySelector('[data-field="first"]');
+  const name = firstEl ? firstEl.value.trim() : '';
+  const who = name ? '<strong>' + escapeHtml(name) + '</strong>' : 'il bambino / la bambina';
+  testMsg.innerHTML =
+    '<strong>Sei invitato ad un test per comprovare la conoscenza della lingua italiana.</strong><br />' +
+    'Il test si terrà <strong>Sabato 29 Agosto dalle 10.00 alle 11.00</strong>.<br />' +
+    '<span style="display:inline-block;margin-top:8px">Al momento dell\'invio, ' + who +
+    ' sarà iscritto/a al test: per questo bambino/a non è previsto alcun pagamento.</span>';
+}
+
+/* Shows the language-test notice (and hides the rest of the block) when the child
+   attended last year in one of the advanced classes. Returns true if a test is required. */
+function applyTestGate(node) {
+  const attended = node.querySelector('[data-field="attended"]:checked');
+  const classSel = node.querySelector('[data-field="attended_class"]');
+  const classWrap = node.querySelector('[data-attended-class]');
+  const testMsg = node.querySelector('[data-test-msg]');
+  const attendedShown = !node.querySelector('[data-attended]').hidden;
+
+  const attendedYes = attendedShown && attended && attended.value === 'Sì';
+  classWrap.hidden = !attendedYes;
+  if (!attendedYes) classSel.value = '';
+
+  const needsTest = attendedYes && TEST_CLASSES.indexOf(classSel.value) !== -1;
+  testMsg.hidden = !needsTest;
+  if (needsTest) updateTestNotice(node);
+  node.querySelectorAll('[data-hide-on-test]').forEach((el) => { el.hidden = needsTest; });
+  return needsTest;
+}
+
+/* Side-effect-free check used outside applyTestGate. */
+function childNeedsTest(b) {
+  const r = b.querySelector('[data-field="attended"]:checked');
+  const cl = b.querySelector('[data-field="attended_class"]');
+  return !!(r && r.value === 'Sì' && cl && TEST_CLASSES.indexOf(cl.value) !== -1);
+}
+function anyTestRequired() {
+  return Array.from(childrenEl.querySelectorAll('[data-child]')).some(childNeedsTest);
+}
+
+/* Counts of test vs regular children in the form. */
+function testCounts() {
+  const blocks = Array.from(childrenEl.querySelectorAll('[data-child]'));
+  const test = blocks.filter(childNeedsTest).length;
+  return { test: test, regular: blocks.length - test, total: blocks.length };
+}
+
+/* The submit button label reflects what the submission will do:
+   • every child is a test case      → "Registrati al Test"
+   • a mix of test + paying children → "Invia registrazione e iscrizione al test"
+   • no test children                → "Invia registrazione" */
+function submitLabel() {
+  const { test, regular } = testCounts();
+  if (test > 0 && regular === 0) return 'Registrati al Test';
+  if (test > 0) return 'Invia registrazione e iscrizione al test';
+  return 'Invia registrazione';
+}
+
+/* Only when EVERY child is a test case does the form become a pure test registration
+   (summary hidden, button relabelled). With a mix, the summary stays for the paying child(ren). */
+function updateTestMode() {
+  const { test, regular } = testCounts();
+  const pureTest = test > 0 && regular === 0;
+  const section = document.getElementById('sds-summary-section');
+  if (section) section.hidden = pureTest;
+  const btn = document.getElementById('sds-submit');
+  if (btn) btn.textContent = submitLabel();
+}
+
+/* -------- Searchable combobox (type to filter, click to pick) -------- */
+const SDS_MONTHS = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+                    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+
+function makeCombo(comboEl, options, onSelect) {
+  const input = comboEl.querySelector('[data-combo-input]');
+  const list = comboEl.querySelector('[data-combo-list]');
+  let opts = options.slice();
+  let selectedValue = '';
+  let activeIndex = -1;
+
+  const labelOf = (v) => { const o = opts.find((x) => x.value === v); return o ? o.label : ''; };
+
+  function render(filter) {
+    const f = (filter || '').trim().toLowerCase();
+    const filtered = opts.filter((o) => o.label.toLowerCase().includes(f) || o.value.toLowerCase().startsWith(f));
+    list.innerHTML = '';
+    filtered.forEach((o) => {
+      const li = document.createElement('li');
+      li.className = 'sds-combo-opt';
+      li.textContent = o.label;
+      li.dataset.value = o.value;
+      li.addEventListener('mousedown', (e) => { e.preventDefault(); choose(o); });
+      list.appendChild(li);
+    });
+    list.classList.toggle('show', filtered.length > 0);
+    activeIndex = -1;
+  }
+  function choose(o) {
+    selectedValue = o.value;
+    input.value = o.label;
+    list.classList.remove('show');
+    onSelect(o.value);
+  }
+  function resetInput() { selectedValue = ''; input.value = ''; }
+  function highlight(items) {
+    items.forEach((it, i) => it.classList.toggle('active', i === activeIndex));
+    if (items[activeIndex]) items[activeIndex].scrollIntoView({ block: 'nearest' });
+  }
+
+  input.addEventListener('focus', () => render(''));
+  input.addEventListener('input', () => render(input.value));
+  input.addEventListener('blur', () => setTimeout(() => {
+    list.classList.remove('show');
+    const typed = input.value.trim().toLowerCase();
+    if (!typed) { if (selectedValue) { resetInput(); onSelect(''); } return; }
+    const exact = opts.find((o) => o.label.toLowerCase() === typed || o.value.toLowerCase() === typed);
+    if (exact) { choose(exact); return; }
+    const matches = opts.filter((o) => o.label.toLowerCase().includes(typed) || o.value.toLowerCase().startsWith(typed));
+    if (matches.length === 1) choose(matches[0]);
+    else input.value = labelOf(selectedValue); // revert to last valid selection (or empty)
+  }, 150));
+  input.addEventListener('keydown', (e) => {
+    const items = Array.from(list.querySelectorAll('.sds-combo-opt'));
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!list.classList.contains('show')) render(input.value); activeIndex = Math.min(activeIndex + 1, items.length - 1); highlight(items); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = Math.max(activeIndex - 1, 0); highlight(items); }
+    else if (e.key === 'Enter') { if (activeIndex >= 0 && items[activeIndex]) { e.preventDefault(); choose(opts.find((o) => o.value === items[activeIndex].dataset.value)); } }
+    else if (e.key === 'Escape') { list.classList.remove('show'); }
+  });
+
+  return {
+    setOptions(newOpts) { opts = newOpts.slice(); if (selectedValue && !opts.find((o) => o.value === selectedValue)) resetInput(); },
+    clear() { resetInput(); },
+    getValue() { return selectedValue; },
+  };
+}
+
+function initDateControl(node) {
+  const root = node.querySelector('[data-date]');
+  const hidden = node.querySelector('[data-field="dob"]');
+  const state = { day: '', month: '', year: '' };
+
+  const monthOptions = SDS_MONTHS.map((m, i) => ({ value: String(i + 1), label: m }));
+  const yearOptions = [];
+  for (let y = 2026; y >= 2006; y--) yearOptions.push({ value: String(y), label: String(y) });
+  const daysInMonth = (m, y) => (m ? new Date(Number(y || 2024), Number(m), 0).getDate() : 31);
+  const dayOptions = () => {
+    const n = daysInMonth(state.month, state.year), arr = [];
+    for (let d = 1; d <= n; d++) arr.push({ value: String(d), label: String(d) });
+    return arr;
+  };
+
+  function syncHidden() {
+    hidden.value = (state.day && state.month && state.year)
+      ? state.year + '-' + String(state.month).padStart(2, '0') + '-' + String(state.day).padStart(2, '0')
+      : '';
+    hidden.dispatchEvent(new Event('change'));
+  }
+  function refreshDays() {
+    const maxD = daysInMonth(state.month, state.year);
+    if (state.day && Number(state.day) > maxD) { state.day = ''; dayCtl.clear(); }
+    dayCtl.setOptions(dayOptions());
+  }
+
+  const dayCtl = makeCombo(root.querySelector('[data-seg="day"]'), dayOptions(), (v) => { state.day = v; syncHidden(); });
+  const monthCtl = makeCombo(root.querySelector('[data-seg="month"]'), monthOptions, (v) => { state.month = v; refreshDays(); syncHidden(); });
+  const yearCtl = makeCombo(root.querySelector('[data-seg="year"]'), yearOptions, (v) => { state.year = v; refreshDays(); syncHidden(); });
+}
+
+function addChild() {
+  if (childCount >= SDS_CONFIG.maxChildren) return;
+  const node = tmpl.content.firstElementChild.cloneNode(true);
+
+  // Populate language dropdowns (refined per course once a DOB is entered)
+  populateLanguageSelects(node, null);
+  showReadWriteFields(node, null); // read/write hidden until a 6–12 anni DOB is entered
+
+  // Custom date-of-birth control (Giorno / Mese / Anno)
+  initDateControl(node);
+
+  // DOB → eligibility → assigns the one eligible course (or shows an error)
+  const dob = node.querySelector('[data-field="dob"]');
+  dob.addEventListener('change', () => applyEligibility(node));
+
+  // Keep the test notice's name in sync while the parent types it
+  node.querySelector('[data-field="first"]').addEventListener('input', () => {
+    if (!node.querySelector('[data-test-msg]').hidden) updateTestNotice(node);
+  });
+
+  // Returning-student question (6–12 anni): unique radio group + live test gate
+  const attName = 'attended_' + (sdsUid++);
+  node.querySelectorAll('[data-field="attended"]').forEach((r) => {
+    r.name = attName;
+    r.addEventListener('change', () => { applyTestGate(node); updateSummary(); });
+  });
+  node.querySelector('[data-field="attended_class"]').addEventListener('change', () => { applyTestGate(node); updateSummary(); });
+  applyTestGate(node); // initial state: class field hidden until "Sì"
+
+  // Remove button
+  node.querySelector('[data-remove-child]').addEventListener('click', () => {
+    node.remove();
+    renumberChildren();
+    updateSummary();
+  });
+
+  childrenEl.appendChild(node);
+  childCount++;
+  renumberChildren();
+  document.getElementById('sds-add-child').disabled = childCount >= SDS_CONFIG.maxChildren;
+  updateSummary();
+}
+
+function renumberChildren() {
+  const blocks = childrenEl.querySelectorAll('[data-child]');
+  childCount = blocks.length;
+  blocks.forEach((b, i) => { b.querySelector('.sds-child-num').textContent = i + 1; });
+  // first child can't be removed when it's the only one
+  blocks.forEach((b) => {
+    b.querySelector('[data-remove-child]').style.visibility = blocks.length > 1 ? 'visible' : 'hidden';
+  });
+  document.getElementById('sds-add-child').disabled = childCount >= SDS_CONFIG.maxChildren;
+}
+
+function collectChildren() {
+  return Array.from(childrenEl.querySelectorAll('[data-child]')).map((b) => {
+    const val = (f) => { const el = b.querySelector('[data-field="' + f + '"]'); return el ? el.value.trim() : ''; };
+    return {
+      first: val('first'),
+      last: val('last'),
+      dob: val('dob'),
+      age: ageFromDob(val('dob')),
+      courseId: val('course'),
+      courseName: (SDS_CONFIG.courses.find((c) => c.id === val('course')) || {}).name || '',
+      giocarParentAck: (() => { const cb = b.querySelector('[data-field="giocar_ack"]'); return cb ? cb.checked : false; })(),
+      attended: (() => { const r = b.querySelector('[data-field="attended"]:checked'); return r ? r.value : ''; })(),
+      attendedClass: val('attended_class'),
+      needsTest: childNeedsTest(b),
+      waitlist: 'No',
+      it_understand: val('it_understand'), it_speak: val('it_speak'),
+      it_read: val('it_read'), it_write: val('it_write'),
+      sv_understand: val('sv_understand'), sv_speak: val('sv_speak'),
+      sv_read: val('sv_read'), sv_write: val('sv_write'),
+    };
+  });
+}
+
+/* Family-level semester selection (whole family shares one choice). */
+function familySemesterId() {
+  const r = document.querySelector('input[name="family_semester"]:checked');
+  return r ? r.value : 'both';
+}
+function semesterById(id) {
+  return SDS_CONFIG.semesters.find((s) => s.id === id) || SDS_CONFIG.semesters[0];
+}
+
+/* Cost model:
+   • one semester → course.price ; both semesters → course.yearPrice (already
+     discounted vs 2× price). `gross` is the notional 2× price for both, so the
+     summary can strike it and show the year saving.
+   • multi-child: a flat SEK amount off EACH paying child, only when ≥2 children pay.
+   • + optional family support contribution
+   Test children register for the test, not a course → excluded from cost. */
+function computeTotals(children, semId, support) {
+  const sem = semesterById(semId || familySemesterId());
+  const isBoth = (sem.count || 1) === 2;
+
+  const lines = children.map((c) => {
+    const course = SDS_CONFIG.courses.find((x) => x.id === c.courseId);
+    const excluded = c.needsTest || !c.courseId;
+    let gross = 0, bothDiscount = 0;
+    if (course && !excluded) {
+      if (isBoth) {
+        const full = course.yearPrice != null ? course.yearPrice : course.price * 2;
+        gross = course.price * 2;       // notional, for the struck-through price
+        bothDiscount = gross - full;    // year saving (0 if no yearPrice)
+      } else {
+        gross = course.price;
+      }
+    }
+    return { child: c, semCount: sem.count, excluded, gross, bothDiscount, multiDiscount: 0, net: 0 };
+  });
+
+  const payingCount = lines.filter((l) => !l.excluded).length;
+  const multiPer = SDS_CONFIG.multiChildDiscountSEK || 0;
+  const multiApplies = payingCount > 1 && multiPer > 0;
+
+  let coursesTotal = 0, bothDiscountTotal = 0, multiDiscountTotal = 0;
+  lines.forEach((l) => {
+    if (l.excluded) return;
+    let net = l.gross - l.bothDiscount;
+    bothDiscountTotal += l.bothDiscount;
+    if (multiApplies) { l.multiDiscount = Math.min(multiPer, net); net -= l.multiDiscount; multiDiscountTotal += l.multiDiscount; }
+    l.net = net;
+    coursesTotal += net;
+  });
+
+  const supportAmt = Math.max(0, Math.round(Number(support) || 0));
+  return {
+    lines, semId: sem.id, semCount: sem.count, coursesTotal,
+    bothDiscountTotal, multiDiscountTotal, multiPer, support: supportAmt,
+    total: coursesTotal + supportAmt, paidCount: payingCount,
+  };
+}
+
+function updateSummary() {
+  updateTestMode();
+  const children = collectChildren();
+  const body = document.getElementById('sds-summary-body');
+  const foot = document.getElementById('sds-summary-foot');
+  body.innerHTML = '';
+  if (!children.length) {
+    body.innerHTML = '<tr><td colspan="3" style="color:var(--isk-muted)">Nessun bambino aggiunto.</td></tr>';
+    foot.innerHTML = '';
+    return;
+  }
+  const t = computeTotals(children, familySemesterId(), sdsSupport);
+  const semLabel = t.semCount === 2 ? '2 semestri' : '1 semestre';
+  t.lines.forEach((l, i) => {
+    if (l.child.needsTest) return; // test children aren't part of the order
+    const name = (l.child.first || l.child.last) ? (l.child.first + ' ' + l.child.last).trim() : 'Bambino ' + (i + 1);
+    const courseCell = l.child.courseId
+      ? escapeHtml(l.child.courseName || '—') + ' <span style="color:var(--isk-muted)">· ' + semLabel + '</span>'
+      : '—';
+    let costCell;
+    if (!l.child.courseId) costCell = '—';
+    else if (l.net < l.gross) costCell = '<s style="color:var(--isk-muted)">' + fmtMoney(l.gross) + '</s> ' + fmtMoney(l.net);
+    else costCell = fmtMoney(l.net);
+    body.insertAdjacentHTML('beforeend',
+      '<tr><td>' + escapeHtml(name) + '</td><td>' + courseCell + '</td><td class="amount">' + costCell + '</td></tr>');
+  });
+  let footHtml = '';
+  if (t.bothDiscountTotal > 0) {
+    footHtml += '<tr><td colspan="2" class="sds-discount">Sconto entrambi i semestri</td>' +
+      '<td class="amount sds-discount">− ' + fmtMoney(t.bothDiscountTotal) + '</td></tr>';
+  }
+  if (t.multiDiscountTotal > 0) {
+    footHtml += '<tr><td colspan="2" class="sds-discount">Sconto più figli (' + fmtMoney(t.multiPer) + ' a bambino/a)</td>' +
+      '<td class="amount sds-discount">− ' + fmtMoney(t.multiDiscountTotal) + '</td></tr>';
+  }
+  if (t.support > 0) {
+    footHtml += '<tr><td colspan="2">Contributo di sostegno</td>' +
+      '<td class="amount">+ ' + fmtMoney(t.support) + '</td></tr>';
+  }
+  footHtml += '<tr><td colspan="2">Totale</td><td class="amount">' + fmtMoney(t.total) + '</td></tr>';
+  foot.innerHTML = footHtml;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* -------- Validation -------- */
+function markInvalid(el, on) {
+  const field = el.closest('.sds-field');
+  if (field) field.classList.toggle('invalid', on);
+}
+
+function validate() {
+  let firstInvalid = null;
+  const form = document.getElementById('sds-form');
+  form.querySelectorAll('.sds-field.invalid').forEach((f) => f.classList.remove('invalid'));
+
+  const required = form.querySelectorAll('[required]');
+  required.forEach((el) => {
+    // Skip fields hidden by CSS (e.g. read/write or class fields not in play).
+    // Keep type=hidden inputs (the dob value carrier), which are always offsetParent-less.
+    if (el.type !== 'hidden' && el.offsetParent === null) return;
+    let ok = true;
+    if (el.type === 'checkbox') ok = el.checked;
+    else if (el.type === 'email') ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim());
+    else ok = el.value.trim() !== '';
+    if (!ok) { markInvalid(el, true); if (!firstInvalid) firstInvalid = el; }
+  });
+
+  if (childCount === 0) {
+    setStatus('Aggiungi almeno un bambino/a.', 'err');
+    if (!firstInvalid) firstInvalid = document.getElementById('sds-add-child');
+  }
+
+  // Per-child checks
+  childrenEl.querySelectorAll('[data-child]').forEach((b) => {
+    // "Hai frequentato l'anno scorso?" is asked of every child (required).
+    const attendedRadio = b.querySelector('[data-field="attended"]:checked');
+    if (!attendedRadio) {
+      b.querySelector('[data-attended]').classList.add('invalid');
+      if (!firstInvalid) firstInvalid = b.querySelector('[data-field="attended"]');
+    } else if (attendedRadio.value === 'Sì') {
+      const classSel = b.querySelector('[data-field="attended_class"]');
+      if (!classSel.value) {
+        b.querySelector('[data-attended-class]').classList.add('invalid');
+        if (!firstInvalid) firstInvalid = classSel;
+      }
+      // An advanced class (Berg / Leonardo) is allowed — it submits as a test registration.
+    }
+
+    // Course eligibility (only when a DOB is present; empty DOB is caught above)
+    const dobEl = b.querySelector('[data-field="dob"]');
+    if (!dobEl.value.trim()) return;
+    const elig = computeEligibility(dobEl.value);
+    if (elig.error || !elig.courseId) {
+      applyEligibility(b); // make sure the message is visible
+      if (!firstInvalid) firstInvalid = b.querySelector('[data-field="course"]');
+    } else if (elig.courseId === 'giocar_cantando') {
+      const ackBox = b.querySelector('[data-field="giocar_ack"]');
+      if (!ackBox.checked) {
+        b.querySelector('[data-giocar-ack]').classList.add('invalid');
+        if (!firstInvalid) firstInvalid = ackBox;
+      }
+    }
+  });
+
+  if (firstInvalid) {
+    const field = firstInvalid.closest('.sds-field') || firstInvalid;
+    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+  return true;
+}
+
+function setStatus(msg, kind) {
+  const el = document.getElementById('sds-status');
+  el.textContent = msg;
+  el.className = 'sds-form-status ' + (kind || '');
+}
+
+/* -------- Submit -------- */
+/* Short, non-personal payment reference (shown in the Swish message + logged),
+   so the school can match an incoming Swish payment to a registration. */
+function genPaymentRef() {
+  const d = new Date().toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
+  return 'SdS-' + d + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+}
+
+async function buildPayload() {
+  const form = document.getElementById('sds-form');
+  const children = collectChildren();
+  const semId = familySemesterId();
+  const sem = semesterById(semId);
+  const t = computeTotals(children, semId, sdsSupport);
+
+  // Whole-family semester choice → annotate each child for the backend.
+  children.forEach((c) => { c.semester = sem.id; c.semesterLabel = sem.name; c.semesterCount = sem.count; });
+
+  return {
+    paymentRef: t.paidCount > 0 ? genPaymentRef() : '',
+    parent: {
+      first: form.parent_first.value.trim(),
+      last: form.parent_last.value.trim(),
+      email: form.parent_email.value.trim(),
+      phone: form.parent_phone.value.trim(),
+    },
+    children: children,
+    semester: sem.id,
+    semesterLabel: sem.name,
+    semesterCount: sem.count,
+    totals: {
+      coursesTotal: t.coursesTotal,
+      bothSemestersDiscount: t.bothDiscountTotal,
+      multiChildDiscount: t.multiDiscountTotal,
+      support: t.support,
+      total: t.total,
+      paidCount: t.paidCount,
+      currency: SDS_CONFIG.currency,
+    },
+    testRegistration: children.some((c) => c.needsTest),
+    consent: form.consent.checked,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+document.getElementById('sds-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setStatus('', '');
+  if (!validate()) return;
+
+  const submitBtn = document.getElementById('sds-submit');
+  const counts = testCounts();
+  const defaultLabel = submitLabel();
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Invio in corso…';
+
+  try {
+    const payload = await buildPayload();
+
+    if (!SDS_CONFIG.appsScriptUrl || SDS_CONFIG.appsScriptUrl.startsWith('PASTE_')) {
+      console.log('SDS payload (no backend configured yet):', payload);
+      setStatus('Backend non ancora configurato — payload registrato nella console del browser.', 'err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = defaultLabel;
+      return;
+    }
+
+    const res = await fetch(SDS_CONFIG.appsScriptUrl, {
+      method: 'POST',
+      // text/plain avoids a CORS preflight against Apps Script
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data && data.ok) {
+      // Tell the thank-you page what happened: registration part and/or test part.
+      // For paying registrations, also pass the amount + reference so grazie.html can
+      // build the Swish payment (amount is not personal; ref is a non-personal code).
+      let url = 'grazie.html?reg=' + (counts.regular > 0 ? 1 : 0) + '&test=' + (counts.test > 0 ? 1 : 0);
+      if (counts.regular > 0) {
+        url += '&amt=' + encodeURIComponent(payload.totals.total) + '&ref=' + encodeURIComponent(payload.paymentRef);
+      }
+      window.location.href = url;
+    } else {
+      throw new Error((data && data.error) || 'Errore sconosciuto');
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus('Si è verificato un errore durante l\'invio. Riprova o contatta la scuola. (' + err.message + ')', 'err');
+    submitBtn.disabled = false;
+    submitBtn.textContent = defaultLabel;
+  }
+});
+
+document.getElementById('sds-add-child').addEventListener('click', addChild);
+
+/* -------- Order controls: family semester selector + support chips -------- */
+function initSemesterSelector() {
+  const group = document.getElementById('sds-semester-group');
+  group.innerHTML = '';
+  SDS_CONFIG.semesters.forEach((s, i) => {
+    const label = document.createElement('label');
+    label.innerHTML = '<input type="radio" name="family_semester" value="' + s.id + '"' +
+      (i === 0 ? ' checked' : '') + ' /> ' + escapeHtml(s.name);
+    group.appendChild(label);
+  });
+  group.querySelectorAll('input[name="family_semester"]').forEach((r) => {
+    r.addEventListener('change', updateSummary);
+  });
+}
+
+function initSupportControls() {
+  const chips = document.getElementById('sds-support-chips');
+  const custom = document.getElementById('sds-support-custom-input');
+  const zeroChip = chips.querySelector('[data-amount="0"]');
+
+  function setActive(activeChip) {
+    chips.querySelectorAll('.sds-chip').forEach((c) => c.classList.toggle('active', c === activeChip));
+  }
+  // Insert the suggested-amount chips before the "Altro" field.
+  (SDS_CONFIG.support && SDS_CONFIG.support.suggested || []).slice().reverse().forEach((amt) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sds-chip';
+    b.dataset.amount = String(amt);
+    b.textContent = '+' + fmtMoney(amt);
+    zeroChip.insertAdjacentElement('afterend', b);
+  });
+
+  chips.querySelectorAll('.sds-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      sdsSupport = Number(chip.dataset.amount) || 0;
+      custom.value = '';
+      setActive(chip);
+      updateSummary();
+    });
+  });
+  custom.addEventListener('input', () => {
+    const v = Math.max(0, Math.round(Number(custom.value) || 0));
+    sdsSupport = v;
+    setActive(v > 0 ? null : zeroChip); // typing a value de-selects all chips
+    updateSummary();
+  });
+}
+
+initSemesterSelector();
+initSupportControls();
+
+// Start with one child block
+addChild();
+updateSummary();
+
+/* -------- Wix embed: report height to the parent page --------
+   When embedded in Wix via an iframe (Embed a Site / HtmlComponent), the iframe
+   can't size itself. We post the document height to the parent on every change;
+   a small Velo snippet listens and resizes the component (see CLAUDE.md → Deploy). */
+(function reportHeightToParent() {
+  if (window.parent === window) return; // not embedded
+  const post = () => {
+    const h = Math.ceil(document.documentElement.scrollHeight);
+    window.parent.postMessage({ sdsHeight: h }, '*');
+  };
+  window.addEventListener('load', post);
+  window.addEventListener('resize', post);
+  if (window.ResizeObserver) new ResizeObserver(post).observe(document.body);
+  document.addEventListener('input', post, true);
+  document.addEventListener('click', () => setTimeout(post, 60), true);
+  post();
+})();
+</script>
+</body>
+</html>

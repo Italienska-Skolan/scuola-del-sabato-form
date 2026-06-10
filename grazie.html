@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Grazie — Scuola del Sabato</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Raleway:wght@400;500;600&display=swap" rel="stylesheet" />
+<!-- QR generator (used to render a scannable Swish code). If it fails to load, the
+     page falls back to the "Apri Swish" button + written instructions. -->
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+<style>
+  :root {
+    --isk-navy: #20325C; --isk-blue: #4060A8; --isk-band-bg: #E9F1FB;
+    --isk-red: #D33A3A; --isk-text: #20325C; --isk-bg: #F3F6FB; --isk-muted: #5C6678;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--isk-bg); color: var(--isk-text);
+    font-family: 'Raleway', 'Helvetica Neue', Arial, sans-serif;
+    display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px;
+  }
+  .card {
+    background: #fff; border-radius: 16px; max-width: 520px; width: 100%;
+    padding: 40px 32px; text-align: center; box-shadow: 0 8px 30px rgba(31,42,107,0.08);
+  }
+  .check {
+    width: 72px; height: 72px; border-radius: 50%; background: var(--isk-band-bg);
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
+    font-size: 36px; color: var(--isk-navy);
+  }
+  h1 { font-family: 'Poppins', sans-serif; color: var(--isk-navy); font-size: 26px; margin: 0 0 12px; }
+  p { font-size: 16px; line-height: 1.6; margin: 0 0 16px; }
+  .note {
+    background: #FFF6E6; border: 1px solid #F2D59B; border-radius: 8px;
+    padding: 14px 16px; font-size: 14px; text-align: left; margin: 20px 0;
+  }
+  .note strong { color: var(--isk-red); }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+  .btn {
+    font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 15px; text-decoration: none;
+    border-radius: 8px; padding: 12px 22px; display: inline-block;
+  }
+  .btn-primary { background: var(--isk-blue); color: #fff; }
+  .btn-secondary { background: transparent; color: var(--isk-blue); border: 1px solid var(--isk-blue); }
+
+  /* Swish payment block */
+  .note.swish { text-align: center; }
+  .swish-amt { font-size: 16px; margin: 4px 0 10px; }
+  .swish-amt strong { color: var(--isk-navy); font-size: 20px; }
+  .swish-qr { display: flex; justify-content: center; margin: 12px 0; }
+  .swish-qr img, .swish-qr canvas { border: 8px solid #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(31,42,107,0.10); }
+  .swish-open { margin: 6px 0 14px; }
+  .swish-details { list-style: none; padding: 0; margin: 8px 0; font-size: 14px; }
+  .swish-details li { margin: 5px 0; }
+  .swish-details .lbl { color: var(--isk-muted); }
+  .swish-details strong { color: var(--isk-navy); }
+  .swish-foot { font-size: 13px; color: var(--isk-muted); margin: 10px 0 0; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="check">✓</div>
+    <h1>Grazie!</h1>
+    <p id="msg">Abbiamo ricevuto la tua richiesta. A breve riceverai un'email di conferma.</p>
+    <div class="note swish" id="note-reg">
+      <strong>Pagamento tramite Swish</strong>
+      <div id="swish-dyn" hidden>
+        <p class="swish-amt">Importo da pagare: <strong id="swish-amount"></strong></p>
+        <div class="swish-qr" id="swish-qr"></div>
+        <a class="btn btn-primary swish-open" id="swish-open" href="#">Apri Swish</a>
+        <ul class="swish-details">
+          <li><span class="lbl">Numero Swish:</span> <strong id="swish-number"></strong></li>
+          <li><span class="lbl">Messaggio:</span> <strong id="swish-ref"></strong></li>
+        </ul>
+        <p class="swish-foot">Scansiona il QR (da un altro telefono) o tocca <strong>Apri Swish</strong>
+          su questo dispositivo. Il posto sarà confermato solo dopo il completamento del pagamento.</p>
+      </div>
+      <p id="swish-fallback" style="margin:8px 0 0">Riceverai a breve le istruzioni per il pagamento
+        tramite Swish. Il posto sarà confermato solo dopo il completamento del pagamento.</p>
+    </div>
+    <div class="note" id="note-test" hidden>
+      <strong>Test di lingua italiana:</strong> uno o più bambini sono invitati al test.
+      Si terrà <strong>Sabato 29 Agosto dalle 10.00 alle 11.00</strong>.
+    </div>
+    <div class="actions">
+      <a class="btn btn-primary" href="https://www.italienskaskolan.se/">Vai al sito della scuola</a>
+      <a class="btn btn-secondary" href="scuola-del-sabato.html">Invia un'altra registrazione</a>
+    </div>
+  </div>
+  <script>
+    /* ===== Swish (manual / QR) config ===== */
+    var SWISH = {
+      // ⚠️ The school's Swish number — Handel (e.g. 1231234567) or a mobile number.
+      // Until set (still starts with PASTE_), the page shows the generic fallback text.
+      number: 'PASTE_SWISH_NUMBER',
+      currency: 'SEK',
+    };
+    // Official Swish "open app" link, prefilled. Scanning it as a QR (from another
+    // phone) or tapping it on mobile opens Swish with amount + message filled in.
+    function swishLink(number, amount, message) {
+      return 'https://app.swish.nu/1/p/sw/?sw=' + encodeURIComponent(number) +
+        '&amt=' + encodeURIComponent(amount) + '&cur=' + SWISH.currency +
+        '&msg=' + encodeURIComponent(message || '') + '&edit=';
+    }
+
+    // Show the right notes based on what was submitted. Defaults to a registration
+    // (e.g. when opened with no params) to preserve the original behaviour.
+    var q = new URLSearchParams(location.search);
+    var hasReg = q.get('reg') !== '0';   // treat absent as a registration
+    var hasTest = q.get('test') === '1';
+    var amt = q.get('amt');
+    var ref = q.get('ref') || '';
+    document.getElementById('note-reg').hidden = !hasReg;
+    document.getElementById('note-test').hidden = !hasTest;
+    if (hasTest && !hasReg) {
+      document.getElementById('msg').innerHTML =
+        "Abbiamo ricevuto la tua iscrizione al <strong>test di lingua italiana</strong>. A breve riceverai un'email di conferma.";
+    }
+
+    // Build the Swish payment UI when we have an amount and a configured number.
+    var swishReady = hasReg && amt && SWISH.number.indexOf('PASTE_') !== 0;
+    if (swishReady) {
+      document.getElementById('swish-fallback').hidden = true;
+      document.getElementById('swish-dyn').hidden = false;
+      document.getElementById('swish-amount').textContent = amt + ' ' + SWISH.currency;
+      document.getElementById('swish-number').textContent = SWISH.number;
+      document.getElementById('swish-ref').textContent = ref || '—';
+      var link = swishLink(SWISH.number, amt, ref);
+      document.getElementById('swish-open').href = link;
+      try {
+        if (window.QRCode) {
+          new QRCode(document.getElementById('swish-qr'),
+            { text: link, width: 170, height: 170, correctLevel: QRCode.CorrectLevel.M });
+        }
+      } catch (e) { /* QR lib unavailable → button + written details still work */ }
+    }
+  </script>
+</body>
+</html>
