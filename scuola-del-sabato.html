@@ -519,8 +519,8 @@
         <div class="sds-error">Seleziona una classe.</div>
       </div>
       <div class="sds-test-msg full" data-test-msg hidden>
-        <strong>Sei invitato ad un test per comprovare la conoscenza della lingua italiana.</strong><br />
-        Il test si terrà <strong>Sabato 29 Agosto dalle 10.00 alle 11.00</strong>.
+        Ti invitiamo a partecipare al <strong>test di verifica della lingua italiana</strong>,
+        che si terrà <strong>sabato 29 agosto dalle 10:00 alle 11:00</strong>.
       </div>
     </div>
 
@@ -763,10 +763,11 @@ function updateTestNotice(node) {
   const name = firstEl ? firstEl.value.trim() : '';
   const who = name ? '<strong>' + escapeHtml(name) + '</strong>' : 'il bambino / la bambina';
   testMsg.innerHTML =
-    '<strong>Sei invitato ad un test per comprovare la conoscenza della lingua italiana.</strong><br />' +
-    'Il test si terrà <strong>Sabato 29 Agosto dalle 10.00 alle 11.00</strong>.<br />' +
-    '<span style="display:inline-block;margin-top:8px">Al momento dell\'invio, ' + who +
-    ' sarà iscritto/a al test: per questo bambino/a non è previsto alcun pagamento.</span>';
+    'Ti invitiamo a partecipare al <strong>test di verifica della lingua italiana</strong>, ' +
+    'che si terrà <strong>sabato 29 agosto dalle 10:00 alle 11:00</strong>.<br />' +
+    '<span style="display:inline-block;margin-top:8px">Con l\'invio di questa comunicazione, ' + who +
+    ' è ufficialmente iscritto/a al test. In caso di esito positivo, invieremo una richiesta di ' +
+    'pagamento per confermare l\'iscrizione definitiva.</span>';
 }
 
 /* Shows the language-test notice (and hides the rest of the block) when the child

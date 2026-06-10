@@ -80,8 +80,9 @@
         tramite Swish. Il posto sarà confermato solo dopo il completamento del pagamento.</p>
     </div>
     <div class="note" id="note-test" hidden>
-      <strong>Test di lingua italiana:</strong> uno o più bambini sono invitati al test.
-      Si terrà <strong>Sabato 29 Agosto dalle 10.00 alle 11.00</strong>.
+      <strong>Test di verifica della lingua italiana:</strong> uno o più bambini sono invitati al test,
+      che si terrà <strong>sabato 29 agosto dalle 10:00 alle 11:00</strong>. In caso di esito positivo,
+      invieremo una richiesta di pagamento per confermare l'iscrizione definitiva.
     </div>
     <div class="actions">
       <a class="btn btn-primary" href="https://www.italienskaskolan.se/">Vai al sito della scuola</a>
@@ -115,7 +116,7 @@
     document.getElementById('note-test').hidden = !hasTest;
     if (hasTest && !hasReg) {
       document.getElementById('msg').innerHTML =
-        "Abbiamo ricevuto la tua iscrizione al <strong>test di lingua italiana</strong>. A breve riceverai un'email di conferma.";
+        "Abbiamo ricevuto l'iscrizione al <strong>test di verifica della lingua italiana</strong>. A breve riceverai un'email di conferma.";
     }
 
     // Build the Swish payment UI when we have an amount and a configured number.
