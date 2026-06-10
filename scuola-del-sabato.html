@@ -549,6 +549,11 @@
       </div>
     </div>
 
+    <div class="sds-test-msg full" data-lang-block hidden>
+      Siamo spiacenti, ma per poter frequentare la scuola primaria, è indispensabile conoscere
+      almeno le basi della lingua italiana.
+    </div>
+
     <div class="sds-subhead" data-hide-on-test>Livello della lingua svedese</div>
     <div class="sds-grid" data-hide-on-test>
       <div class="sds-field">
@@ -617,10 +622,8 @@ const SDS_CONFIG = {
     suggested: [100, 200, 500], // ⚠️ PLACEHOLDER chip amounts (SEK) — confirm.
   },
 
-  // Language-level dropdown options. 'Per niente' is only offered for the younger
-  // courses (3–5 anni and Giocar Cantando) — see languageOptionsForCourse().
-  languageLevels: ['Sì, perfettamente', 'La maggior parte delle volte', 'Poco', 'Per niente'],
-  languageLevelYoungOnly: ['Per niente'], // options shown only for sds_3_5 + giocar_cantando
+  // Language-level dropdown options — the same for every course.
+  languageLevels: ['Sì, perfettamente', 'La maggior parte delle volte', 'Poco', 'No'],
 };
 
 /* ===================================================================== */
@@ -704,8 +707,10 @@ function applyEligibility(node) {
     msg.textContent = '';
     msg.classList.remove('show');
   }
-  populateLanguageSelects(node, elig.courseId || null);
+  populateLanguageSelects(node);
   showReadWriteFields(node, elig.courseId || null);
+  applyTestGate(node);   // test status depends on the course (Primaria + "No" → test)
+  applyLangBlock(node);  // Primaria Italian-language requirement
   updateSummary();
 }
 
@@ -724,16 +729,9 @@ function fillSelect(sel, options, { placeholder } = {}) {
   });
 }
 
-/* Language-level options depend on the assigned course: 'Per niente' (and anything in
-   languageLevelYoungOnly) is only offered for 3–5 anni and Giocar Cantando. */
-function languageOptionsForCourse(courseId) {
-  const youngOnly = SDS_CONFIG.languageLevelYoungOnly || [];
-  const isYoung = courseId === 'sds_3_5' || courseId === 'giocar_cantando' || !courseId; // !courseId = not assigned yet → show all
-  return SDS_CONFIG.languageLevels.filter((o) => isYoung || youngOnly.indexOf(o) === -1);
-}
-
-function populateLanguageSelects(node, courseId) {
-  const opts = languageOptionsForCourse(courseId);
+/* Every course shares the same language-level options. */
+function populateLanguageSelects(node) {
+  const opts = SDS_CONFIG.languageLevels;
   node.querySelectorAll('select[data-lang]').forEach((sel) => {
     const prev = sel.value;
     fillSelect(sel, opts, { placeholder: 'Seleziona…' });
@@ -771,30 +769,55 @@ function updateTestNotice(node) {
 }
 
 /* Shows the language-test notice (and hides the rest of the block) when the child
-   attended last year in one of the advanced classes. Returns true if a test is required. */
+   needs the test. Returns true if a test is required. */
 function applyTestGate(node) {
   const attended = node.querySelector('[data-field="attended"]:checked');
   const classSel = node.querySelector('[data-field="attended_class"]');
   const classWrap = node.querySelector('[data-attended-class]');
   const testMsg = node.querySelector('[data-test-msg]');
-  const attendedShown = !node.querySelector('[data-attended]').hidden;
 
-  const attendedYes = attendedShown && attended && attended.value === 'Sì';
+  const attendedYes = attended && attended.value === 'Sì';
   classWrap.hidden = !attendedYes;
   if (!attendedYes) classSel.value = '';
 
-  const needsTest = attendedYes && TEST_CLASSES.indexOf(classSel.value) !== -1;
+  const needsTest = childNeedsTest(node);
   testMsg.hidden = !needsTest;
   if (needsTest) updateTestNotice(node);
   node.querySelectorAll('[data-hide-on-test]').forEach((el) => { el.hidden = needsTest; });
   return needsTest;
 }
 
-/* Side-effect-free check used outside applyTestGate. */
+/* A child is sent to the language test when either:
+   • they attended last year in an advanced class (Berg / Leonardo), or
+   • they qualify for Primaria (6–12 anni) and did NOT attend last year.
+   Side-effect-free — safe to call anywhere. */
 function childNeedsTest(b) {
   const r = b.querySelector('[data-field="attended"]:checked');
+  const attended = r ? r.value : '';
   const cl = b.querySelector('[data-field="attended_class"]');
-  return !!(r && r.value === 'Sì' && cl && TEST_CLASSES.indexOf(cl.value) !== -1);
+  const courseId = (b.querySelector('[data-field="course"]') || {}).value;
+  if (attended === 'Sì' && cl && TEST_CLASSES.indexOf(cl.value) !== -1) return true;
+  if (attended === 'No' && courseId === 'sds_6_12') return true;
+  return false;
+}
+
+/* Primaria requires at least basic Italian. A Primaria child who is NOT a test case
+   and answers "No" to any Italian-language question cannot be registered — a red
+   notice shows and submission is blocked. (Test children don't answer these — hidden.) */
+const IT_LANG_FIELDS = ['it_understand', 'it_speak', 'it_read', 'it_write'];
+function langRequirementFailed(b) {
+  const courseId = (b.querySelector('[data-field="course"]') || {}).value;
+  if (courseId !== 'sds_6_12' || childNeedsTest(b)) return false;
+  return IT_LANG_FIELDS.some((f) => {
+    const sel = b.querySelector('[data-field="' + f + '"]');
+    return sel && sel.value === 'No';
+  });
+}
+function applyLangBlock(node) {
+  const failed = langRequirementFailed(node);
+  const msg = node.querySelector('[data-lang-block]');
+  if (msg) msg.hidden = !failed;
+  return failed;
 }
 function anyTestRequired() {
   return Array.from(childrenEl.querySelectorAll('[data-child]')).some(childNeedsTest);
@@ -932,8 +955,8 @@ function addChild() {
   if (childCount >= SDS_CONFIG.maxChildren) return;
   const node = tmpl.content.firstElementChild.cloneNode(true);
 
-  // Populate language dropdowns (refined per course once a DOB is entered)
-  populateLanguageSelects(node, null);
+  // Populate language dropdowns (same options for every course)
+  populateLanguageSelects(node);
   showReadWriteFields(node, null); // read/write hidden until a 6–12 anni DOB is entered
 
   // Custom date-of-birth control (Giorno / Mese / Anno)
@@ -952,10 +975,15 @@ function addChild() {
   const attName = 'attended_' + (sdsUid++);
   node.querySelectorAll('[data-field="attended"]').forEach((r) => {
     r.name = attName;
-    r.addEventListener('change', () => { applyTestGate(node); updateSummary(); });
+    r.addEventListener('change', () => { applyTestGate(node); applyLangBlock(node); updateSummary(); });
   });
-  node.querySelector('[data-field="attended_class"]').addEventListener('change', () => { applyTestGate(node); updateSummary(); });
+  node.querySelector('[data-field="attended_class"]').addEventListener('change', () => { applyTestGate(node); applyLangBlock(node); updateSummary(); });
   applyTestGate(node); // initial state: class field hidden until "Sì"
+
+  // Primaria Italian-language requirement — re-check live as the levels change
+  node.querySelectorAll('select[data-lang]').forEach((sel) => {
+    sel.addEventListener('change', () => applyLangBlock(node));
+  });
 
   // Remove button
   node.querySelector('[data-remove-child]').addEventListener('click', () => {
@@ -1167,6 +1195,15 @@ function validate() {
         b.querySelector('[data-giocar-ack]').classList.add('invalid');
         if (!firstInvalid) firstInvalid = ackBox;
       }
+    }
+
+    // Primaria requires basic Italian: any Italian answer "No" blocks submission.
+    if (applyLangBlock(b)) {
+      const firstNo = IT_LANG_FIELDS
+        .map((f) => b.querySelector('[data-field="' + f + '"]'))
+        .find((s) => s && s.value === 'No');
+      if (firstNo) { markInvalid(firstNo, true); if (!firstInvalid) firstInvalid = firstNo; }
+      else if (!firstInvalid) firstInvalid = b.querySelector('[data-lang-block]');
     }
   });
 
