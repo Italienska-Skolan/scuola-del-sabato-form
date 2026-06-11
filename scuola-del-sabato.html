@@ -149,6 +149,9 @@
     background: #FDECEF; border: 1px solid #F3C0CD; color: var(--isk-error);
     border-radius: 8px; padding: 14px 16px; font-size: 15px; line-height: 1.5;
   }
+  /* Test-information box uses the brand light-green (the red styling is kept for
+     the Primaria language-requirement block, which stays on .sds-test-msg alone). */
+  .sds-test-msg.sds-test-info { background: #DFFFF8; border-color: #B9EEDF; color: var(--isk-navy); }
 
   /* Calendar / "new this year" announcement */
   .sds-highlight {
@@ -396,9 +399,7 @@
       <div class="sds-support" id="sds-support">
         <h3>Sostieni il progetto <span style="font-weight:400;color:var(--isk-muted);font-size:14px">(facoltativo)</span></h3>
         <p class="sds-support-note">
-          Italienska Skolan Stockholm è un'associazione <strong>senza scopo di lucro</strong>:
-          non distribuiamo utili né dividendi ai soci. Ogni contributo volontario sostiene
-          direttamente il progetto della Scuola del Sabato.
+          Ogni contributo volontario sostiene direttamente il progetto della Scuola del Sabato.
         </p>
         <div class="sds-support-chips" id="sds-support-chips">
           <button type="button" class="sds-chip active" data-amount="0">Nessun contributo</button>
@@ -518,9 +519,19 @@
         </select>
         <div class="sds-error">Seleziona una classe.</div>
       </div>
-      <div class="sds-test-msg full" data-test-msg hidden>
-        Ti invitiamo a partecipare al <strong>test di verifica della lingua italiana</strong>,
-        che si terrà <strong>sabato 29 agosto dalle 10:00 alle 11:00</strong>.
+      <div class="sds-test-msg sds-test-info full" data-test-msg hidden>
+        Il nostro obiettivo è di garantire ai nostri studenti un buon livello di immersione linguistica.
+        Per poter iscriversi alla Scuola del Sabato di Italienska Skolan Stockholm è necessario superare
+        un <strong>test d'ingresso di italiano</strong>. Il test si terrà
+        <strong>sabato 29 agosto dalle 10:00 alle 11:00 a Luntmakargatan 101</strong>.
+      </div>
+      <div class="sds-field full" data-test-ack hidden>
+        <label class="sds-consent">
+          <input type="checkbox" data-field="test_ack" />
+          <span>Confermo di voler partecipare al test e sono consapevole che l'iscrizione definitiva
+          alla Scuola del Sabato avverrà solamente dopo il superamento del test di ingresso. <span class="req">*</span></span>
+        </label>
+        <div class="sds-error">È necessario confermare la partecipazione al test.</div>
       </div>
     </div>
 
@@ -751,29 +762,16 @@ function showReadWriteFields(node, courseId) {
 /* Returning-student question — asked of every child. */
 const TEST_CLASSES = ['In classe Berg (Maestra Marisa)', 'In classe Leonardo'];
 
-/* Fills the in-block test notice, naming the child and spelling out the outcome,
-   so the test child's path is clear from their own block (the actual submit stays
-   the single button at the bottom). */
-function updateTestNotice(node) {
-  const testMsg = node.querySelector('[data-test-msg]');
-  const firstEl = node.querySelector('[data-field="first"]');
-  const name = firstEl ? firstEl.value.trim() : '';
-  const who = name ? '<strong>' + escapeHtml(name) + '</strong>' : 'il bambino / la bambina';
-  testMsg.innerHTML =
-    'Ti invitiamo a partecipare al <strong>test di verifica della lingua italiana</strong>, ' +
-    'che si terrà <strong>sabato 29 agosto dalle 10:00 alle 11:00</strong>.<br />' +
-    '<span style="display:inline-block;margin-top:8px">Con l\'invio di questa comunicazione, ' + who +
-    ' è ufficialmente iscritto/a al test. In caso di esito positivo, invieremo una richiesta di ' +
-    'pagamento per confermare l\'iscrizione definitiva.</span>';
-}
-
-/* Shows the language-test notice (and hides the rest of the block) when the child
-   needs the test. Returns true if a test is required. */
+/* Shows the test info box + the participation checkbox (and hides the rest of the
+   block) when the child needs the test. The notice text is static (in the template).
+   Returns true if a test is required. */
 function applyTestGate(node) {
   const attended = node.querySelector('[data-field="attended"]:checked');
   const classSel = node.querySelector('[data-field="attended_class"]');
   const classWrap = node.querySelector('[data-attended-class]');
   const testMsg = node.querySelector('[data-test-msg]');
+  const ackWrap = node.querySelector('[data-test-ack]');
+  const ackBox = node.querySelector('[data-field="test_ack"]');
 
   const attendedYes = attended && attended.value === 'Sì';
   classWrap.hidden = !attendedYes;
@@ -781,7 +779,10 @@ function applyTestGate(node) {
 
   const needsTest = childNeedsTest(node);
   testMsg.hidden = !needsTest;
-  if (needsTest) updateTestNotice(node);
+  if (ackWrap) {
+    ackWrap.hidden = !needsTest;
+    if (!needsTest && ackBox) { ackBox.checked = false; ackWrap.classList.remove('invalid'); }
+  }
   node.querySelectorAll('[data-hide-on-test]').forEach((el) => { el.hidden = needsTest; });
   return needsTest;
 }
@@ -965,11 +966,6 @@ function addChild() {
   const dob = node.querySelector('[data-field="dob"]');
   dob.addEventListener('change', () => applyEligibility(node));
 
-  // Keep the test notice's name in sync while the parent types it
-  node.querySelector('[data-field="first"]').addEventListener('input', () => {
-    if (!node.querySelector('[data-test-msg]').hidden) updateTestNotice(node);
-  });
-
   // Returning-student question (6–12 anni): unique radio group + live test gate
   const attName = 'attended_' + (sdsUid++);
   node.querySelectorAll('[data-field="attended"]').forEach((r) => {
@@ -1020,6 +1016,7 @@ function collectChildren() {
       courseId: val('course'),
       courseName: (SDS_CONFIG.courses.find((c) => c.id === val('course')) || {}).name || '',
       giocarParentAck: (() => { const cb = b.querySelector('[data-field="giocar_ack"]'); return cb ? cb.checked : false; })(),
+      testAck: (() => { const cb = b.querySelector('[data-field="test_ack"]'); return cb ? cb.checked : false; })(),
       attended: (() => { const r = b.querySelector('[data-field="attended"]:checked'); return r ? r.value : ''; })(),
       attendedClass: val('attended_class'),
       needsTest: childNeedsTest(b),
@@ -1179,6 +1176,15 @@ function validate() {
         if (!firstInvalid) firstInvalid = classSel;
       }
       // An advanced class (Berg / Leonardo) is allowed — it submits as a test registration.
+    }
+
+    // Test children must confirm participation (checkbox under the test info box).
+    if (childNeedsTest(b)) {
+      const ackBox = b.querySelector('[data-field="test_ack"]');
+      if (ackBox && !ackBox.checked) {
+        b.querySelector('[data-test-ack]').classList.add('invalid');
+        if (!firstInvalid) firstInvalid = ackBox;
+      }
     }
 
     // Course eligibility (only when a DOB is present; empty DOB is caught above)
