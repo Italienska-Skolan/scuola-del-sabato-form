@@ -630,6 +630,7 @@ const SDS_CONFIG = {
   // optional extra a family can add to help fund the project.
   support: {
     suggested: [100, 200, 500], // ⚠️ PLACEHOLDER chip amounts (SEK) — confirm.
+    maxCustom: 10000,           // cap on the "Altro" custom amount (SEK)
   },
 
   // Language-level dropdown options — the same for every course.
@@ -1341,6 +1342,8 @@ function initSupportControls() {
   const chips = document.getElementById('sds-support-chips');
   const custom = document.getElementById('sds-support-custom-input');
   const zeroChip = chips.querySelector('[data-amount="0"]');
+  const maxSupport = (SDS_CONFIG.support && SDS_CONFIG.support.maxCustom) || Infinity;
+  if (isFinite(maxSupport)) custom.max = maxSupport;
 
   function setActive(activeChip) {
     chips.querySelectorAll('.sds-chip').forEach((c) => c.classList.toggle('active', c === activeChip));
@@ -1364,7 +1367,8 @@ function initSupportControls() {
     });
   });
   custom.addEventListener('input', () => {
-    const v = Math.max(0, Math.round(Number(custom.value) || 0));
+    let v = Math.max(0, Math.round(Number(custom.value) || 0));
+    if (v > maxSupport) { v = maxSupport; custom.value = String(v); } // hard cap (e.g. 10 000 SEK)
     sdsSupport = v;
     setActive(v > 0 ? null : zeroChip); // typing a value de-selects all chips
     updateSummary();
