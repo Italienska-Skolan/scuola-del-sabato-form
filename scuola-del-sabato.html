@@ -1266,6 +1266,19 @@ async function buildPayload() {
       paidCount: t.paidCount,
       currency: SDS_CONFIG.currency,
     },
+    // Itemised payment breakdown (paying children only — test children excluded),
+    // shown in the Swish box on the thank-you page so it's clear what is being paid.
+    paySummary: {
+      lines: t.lines.filter((l) => !l.excluded).map((l) => ({
+        name: ((l.child.first || '') + ' ' + (l.child.last || '')).trim() || 'Bambino',
+        course: l.child.courseName || '',
+        semesters: l.semCount,
+        gross: l.gross,  // list price (struck through when discounted)
+        net: l.net,      // amount actually charged for this child (discounts applied)
+      })),
+      support: t.support,
+      total: t.total,
+    },
     testRegistration: children.some((c) => c.needsTest),
     consent: form.consent.checked,
     submittedAt: new Date().toISOString(),
@@ -1302,14 +1315,23 @@ document.getElementById('sds-form').addEventListener('submit', async (e) => {
     });
     const data = await res.json().catch(() => ({}));
     if (data && data.ok) {
-      // Tell the thank-you page what happened: registration part and/or test part.
-      // For paying registrations, also pass the amount + reference so grazie.html can
-      // build the Swish payment (amount is not personal; ref is a non-personal code).
-      let url = 'grazie.html?reg=' + (counts.regular > 0 ? 1 : 0) + '&test=' + (counts.test > 0 ? 1 : 0);
-      if (counts.regular > 0) {
-        url += '&amt=' + encodeURIComponent(payload.totals.total) + '&ref=' + encodeURIComponent(payload.paymentRef);
-      }
-      window.location.href = url;
+      // Hand the thank-you page everything it needs via sessionStorage (same origin),
+      // so no personal data (child names) ever goes in the URL.
+      //  • test children → listed by name in the confirmation
+      //  • paying children → Swish for the family total (data.ref is the backend's SAB code)
+      const testNames = payload.children
+        .map((c, i) => ({ name: (c.first || '').trim() || ('Bambino ' + (i + 1)), needsTest: c.needsTest }))
+        .filter((c) => c.needsTest)
+        .map((c) => c.name);
+      const conf = {
+        testNames: testNames,
+        payAmount: counts.regular > 0 ? payload.totals.total : 0,
+        payRef: data.ref || payload.paymentRef || '',
+        currency: payload.totals.currency || 'SEK',
+        paySummary: counts.regular > 0 ? payload.paySummary : null,
+      };
+      try { sessionStorage.setItem('sdsConfirmation', JSON.stringify(conf)); } catch (e) {}
+      window.location.href = 'grazie.html';
     } else {
       throw new Error((data && data.error) || 'Errore sconosciuto');
     }

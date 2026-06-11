@@ -36,6 +36,8 @@
     padding: 14px 16px; font-size: 14px; text-align: left; margin: 20px 0;
   }
   .note strong { color: var(--isk-red); }
+  .note.green { background: #DFFFF8; border-color: #B9EEDF; }
+  .note.green strong { color: var(--isk-navy); }
   .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
   .btn {
     font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 15px; text-decoration: none;
@@ -46,6 +48,13 @@
 
   /* Swish payment block */
   .note.swish { text-align: center; }
+  .pay-summary { margin: 4px 0 8px; font-size: 14px; }
+  .pay-summary table { width: 100%; border-collapse: collapse; }
+  .pay-summary td { padding: 6px 4px; border-bottom: 1px solid rgba(31,42,107,0.08); text-align: left; }
+  .pay-summary td.amt { text-align: right; white-space: nowrap; }
+  .pay-summary .course { color: var(--isk-muted); }
+  .pay-summary tr.disc td { color: #2e7d32; }
+  .pay-note { font-size: 13px; color: var(--isk-muted); margin: 0 0 10px; text-align: left; }
   .swish-amt { font-size: 16px; margin: 4px 0 10px; }
   .swish-amt strong { color: var(--isk-navy); font-size: 20px; }
   .swish-qr { display: flex; justify-content: center; margin: 12px 0; }
@@ -63,9 +72,20 @@
     <div class="check">✓</div>
     <h1>Grazie!</h1>
     <p id="msg">Abbiamo ricevuto la tua richiesta. A breve riceverai un'email di conferma.</p>
-    <div class="note swish" id="note-reg">
+    <!-- Test confirmation (shown when one or more children are registered for the test) -->
+    <div class="note green" id="note-test" hidden>
+      <span id="test-text"></span><br />
+      Il test si terrà <strong>sabato 29 agosto dalle 10:00 alle 11:00 a Luntmakargatan 101</strong>.
+      In caso di esito positivo, invieremo una richiesta di pagamento per confermare l'iscrizione definitiva.
+    </div>
+
+    <!-- Swish payment (shown when there are paying children) -->
+    <div class="note swish" id="note-reg" hidden>
       <strong>Pagamento tramite Swish</strong>
       <div id="swish-dyn" hidden>
+        <div class="pay-summary" id="pay-summary"></div>
+        <p class="pay-note" id="pay-note" hidden>I bambini iscritti al test non sono inclusi in questo importo:
+          per loro non è previsto alcun pagamento ora.</p>
         <p class="swish-amt">Importo da pagare: <strong id="swish-amount"></strong></p>
         <div class="swish-qr" id="swish-qr"></div>
         <a class="btn btn-primary swish-open" id="swish-open" href="#">Apri Swish</a>
@@ -79,11 +99,6 @@
       <p id="swish-fallback" style="margin:8px 0 0">Riceverai a breve le istruzioni per il pagamento
         tramite Swish. Il posto sarà confermato solo dopo il completamento del pagamento.</p>
     </div>
-    <div class="note" id="note-test" hidden>
-      <strong>Test di verifica della lingua italiana:</strong> uno o più bambini sono invitati al test,
-      che si terrà <strong>sabato 29 agosto dalle 10:00 alle 11:00</strong>. In caso di esito positivo,
-      invieremo una richiesta di pagamento per confermare l'iscrizione definitiva.
-    </div>
     <div class="actions">
       <a class="btn btn-primary" href="https://www.italienskaskolan.se/">Vai al sito della scuola</a>
       <a class="btn btn-secondary" href="scuola-del-sabato.html">Invia un'altra registrazione</a>
@@ -92,9 +107,7 @@
   <script>
     /* ===== Swish (manual / QR) config ===== */
     var SWISH = {
-      // ⚠️ The school's Swish number — Handel (e.g. 1231234567) or a mobile number.
-      // Until set (still starts with PASTE_), the page shows the generic fallback text.
-      number: 'PASTE_SWISH_NUMBER',
+      number: '1231311851',   // school's Swish number (keep in sync with SWISH_NUMBER in Code.gs)
       currency: 'SEK',
     };
     // Official Swish "open app" link, prefilled. Scanning it as a QR (from another
@@ -104,37 +117,82 @@
         '&amt=' + encodeURIComponent(amount) + '&cur=' + SWISH.currency +
         '&msg=' + encodeURIComponent(message || '') + '&edit=';
     }
-
-    // Show the right notes based on what was submitted. Defaults to a registration
-    // (e.g. when opened with no params) to preserve the original behaviour.
-    var q = new URLSearchParams(location.search);
-    var hasReg = q.get('reg') !== '0';   // treat absent as a registration
-    var hasTest = q.get('test') === '1';
-    var amt = q.get('amt');
-    var ref = q.get('ref') || '';
-    document.getElementById('note-reg').hidden = !hasReg;
-    document.getElementById('note-test').hidden = !hasTest;
-    if (hasTest && !hasReg) {
-      document.getElementById('msg').innerHTML =
-        "Abbiamo ricevuto l'iscrizione al <strong>test di verifica della lingua italiana</strong>. A breve riceverai un'email di conferma.";
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function fmtSEK(n, cur) {
+      return (Math.round(Number(n) || 0)).toLocaleString('it-IT') + ' ' + cur;
     }
 
-    // Build the Swish payment UI when we have an amount and a configured number.
-    var swishReady = hasReg && amt && SWISH.number.indexOf('PASTE_') !== 0;
-    if (swishReady) {
-      document.getElementById('swish-fallback').hidden = true;
-      document.getElementById('swish-dyn').hidden = false;
-      document.getElementById('swish-amount').textContent = amt + ' ' + SWISH.currency;
-      document.getElementById('swish-number').textContent = SWISH.number;
-      document.getElementById('swish-ref').textContent = ref || '—';
-      var link = swishLink(SWISH.number, amt, ref);
-      document.getElementById('swish-open').href = link;
-      try {
-        if (window.QRCode) {
-          new QRCode(document.getElementById('swish-qr'),
-            { text: link, width: 170, height: 170, correctLevel: QRCode.CorrectLevel.M });
+    // The form hands us the confirmation via sessionStorage (same origin), so no
+    // personal data (child names) ever travels in the URL.
+    var conf = null;
+    try { conf = JSON.parse(sessionStorage.getItem('sdsConfirmation') || 'null'); } catch (e) {}
+
+    var testNames = (conf && conf.testNames) || [];
+    var payAmount = (conf && Number(conf.payAmount)) || 0;
+    var payRef    = (conf && conf.payRef) || '';
+    var currency  = (conf && conf.currency) || SWISH.currency;
+    var hasTest = testNames.length > 0;
+    var hasPay  = payAmount > 0;
+
+    // --- Scenario: one or more children registered for the test ---
+    if (hasTest) {
+      var joined = testNames.length === 1
+        ? testNames[0]
+        : testNames.slice(0, -1).join(', ') + ' e ' + testNames[testNames.length - 1];
+      var verb = testNames.length === 1 ? 'è iscritto/a' : 'sono iscritti/e';
+      document.getElementById('test-text').innerHTML =
+        'Confermiamo che <strong>' + esc(joined) + '</strong> ' + verb +
+        ' al <strong>test di verifica della lingua italiana</strong>.';
+      document.getElementById('note-test').hidden = false;
+    }
+
+    // --- Scenario: paying children → Swish for the total of the non-test children ---
+    var swishConfigured = SWISH.number.indexOf('PASTE_') !== 0;
+    if (hasPay) {
+      document.getElementById('note-reg').hidden = false;
+      if (swishConfigured) {
+        document.getElementById('swish-fallback').hidden = true;
+        document.getElementById('swish-dyn').hidden = false;
+
+        // Itemised breakdown of what is being paid (test children are not listed).
+        var ps = conf && conf.paySummary;
+        if (ps) {
+          var rows = '';
+          (ps.lines || []).forEach(function (l) {
+            var sem = l.semesters === 2 ? '2 semestri' : '1 semestre';
+            var course = l.course ? ' <span class="course">— ' + esc(l.course) + ' · ' + sem + '</span>' : '';
+            var amount = (l.gross != null && l.net < l.gross)
+              ? '<s class="course">' + fmtSEK(l.gross, currency) + '</s> ' + fmtSEK(l.net, currency)
+              : fmtSEK(l.net, currency);
+            rows += '<tr><td>' + esc(l.name) + course + '</td><td class="amt">' + amount + '</td></tr>';
+          });
+          if (ps.support > 0) rows += '<tr><td>Contributo di sostegno</td><td class="amt">+ ' + fmtSEK(ps.support, currency) + '</td></tr>';
+          document.getElementById('pay-summary').innerHTML = '<table>' + rows + '</table>';
         }
-      } catch (e) { /* QR lib unavailable → button + written details still work */ }
+        document.getElementById('pay-note').hidden = !hasTest; // clarify test kids aren't charged
+
+        document.getElementById('swish-amount').textContent = fmtSEK(payAmount, currency);
+        document.getElementById('swish-number').textContent = SWISH.number;
+        document.getElementById('swish-ref').textContent = payRef || '—';
+        var link = swishLink(SWISH.number, payAmount, payRef);
+        document.getElementById('swish-open').href = link;
+        try {
+          if (window.QRCode) {
+            new QRCode(document.getElementById('swish-qr'),
+              { text: link, width: 170, height: 170, correctLevel: QRCode.CorrectLevel.M });
+          }
+        } catch (e) { /* QR lib unavailable → button + written details still work */ }
+      }
+    }
+
+    // --- Headline message ---
+    if (hasTest && !hasPay) {
+      document.getElementById('msg').innerHTML =
+        "Abbiamo registrato l'iscrizione al test. A breve riceverai un'email di conferma.";
     }
   </script>
 </body>
