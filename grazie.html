@@ -110,9 +110,11 @@
     // Official Swish "open app" link, prefilled. Scanning it as a QR (from another
     // phone) or tapping it on mobile opens Swish with amount + message filled in.
     function swishLink(number, amount, message) {
+      // Format that the Swish app accepts: sw + amt + msg only. Adding cur or a
+      // trailing empty edit= makes Swish reject the link ("incorrect format").
       return 'https://app.swish.nu/1/p/sw/?sw=' + encodeURIComponent(number) +
-        '&amt=' + encodeURIComponent(amount) + '&cur=' + SWISH.currency +
-        '&msg=' + encodeURIComponent(message || '') + '&edit=';
+        '&amt=' + encodeURIComponent(amount) +
+        '&msg=' + encodeURIComponent(message || '');
     }
     function esc(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
