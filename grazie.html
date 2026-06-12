@@ -6,9 +6,6 @@
 <title>Grazie — Scuola del Sabato</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Raleway:wght@400;500;600&display=swap" rel="stylesheet" />
-<!-- QR generator (used to render a scannable Swish code). If it fails to load, the
-     page falls back to the "Apri Swish" button + written instructions. -->
-<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
 <style>
   :root {
     --isk-navy: #20325C; --isk-blue: #4060A8; --isk-band-bg: #E9F1FB;
@@ -178,14 +175,16 @@
         document.getElementById('swish-amount').textContent = fmtSEK(payAmount, currency);
         document.getElementById('swish-number').textContent = SWISH.number;
         document.getElementById('swish-ref').textContent = payRef || '—';
-        var link = swishLink(SWISH.number, payAmount, payRef);
-        document.getElementById('swish-open').href = link;
-        try {
-          if (window.QRCode) {
-            new QRCode(document.getElementById('swish-qr'),
-              { text: link, width: 170, height: 170, correctLevel: QRCode.CorrectLevel.M });
-          }
-        } catch (e) { /* QR lib unavailable → button + written details still work */ }
+        document.getElementById('swish-open').href = swishLink(SWISH.number, payAmount, payRef);
+        // Render the REAL Swish QR (generated server-side — a QR of the link is not a
+        // valid Swish code and the Swish scanner rejects it). If it's missing, hide the
+        // QR box and rely on the "Apri Swish" button + the written number/message.
+        var qrBox = document.getElementById('swish-qr');
+        if (conf && conf.qr) {
+          qrBox.innerHTML = '<img src="' + conf.qr + '" width="220" height="220" alt="Codice QR Swish" />';
+        } else {
+          qrBox.hidden = true;
+        }
       }
     }
 
