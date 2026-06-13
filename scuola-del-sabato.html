@@ -362,8 +362,8 @@
           <div class="sds-error">Inserisci un'email valida.</div>
         </div>
         <div class="sds-field">
-          <label>Telefono <span class="req">*</span></label>
-          <input type="tel" name="parent_phone" required placeholder="+46 ..." />
+          <label>Telefono</label>
+          <input type="tel" name="parent_phone" placeholder="+46 ..." />
           <div class="sds-error">Campo obbligatorio.</div>
         </div>
       </div>
@@ -1256,8 +1256,16 @@ async function buildPayload() {
   const sem = semesterById(semId);
   const t = computeTotals(children, semId, sdsSupport);
 
-  // Whole-family semester choice → annotate each child for the backend.
-  children.forEach((c) => { c.semester = sem.id; c.semesterLabel = sem.name; c.semesterCount = sem.count; });
+  // Whole-family semester choice → annotate each child for the backend. `courseAmount`
+  // is the course price for the chosen semester(s) (no discounts) — used in the Studenti
+  // tab, and as the amount a test child pays if they pass.
+  children.forEach((c) => {
+    c.semester = sem.id; c.semesterLabel = sem.name; c.semesterCount = sem.count;
+    const course = SDS_CONFIG.courses.find((x) => x.id === c.courseId);
+    c.courseAmount = course
+      ? (sem.count === 2 ? (course.yearPrice != null ? course.yearPrice : course.price * 2) : course.price)
+      : 0;
+  });
 
   return {
     paymentRef: t.paidCount > 0 ? genPaymentRef() : '',
