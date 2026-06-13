@@ -561,8 +561,8 @@
     </div>
 
     <div class="sds-test-msg full" data-lang-block hidden>
-      Siamo spiacenti, ma per poter frequentare la scuola primaria, è indispensabile conoscere
-      almeno le basi della lingua italiana.
+      Siamo spiacenti, ma per poter frequentare la scuola primaria della Scuola del sabato,
+      è indispensabile conoscere almeno le basi della lingua italiana.
     </div>
 
     <div class="sds-subhead" data-hide-on-test>Livello della lingua svedese</div>
@@ -720,6 +720,17 @@ function applyEligibility(node) {
   }
   populateLanguageSelects(node);
   showReadWriteFields(node, elig.courseId || null);
+
+  // Infanzia (3–5) has no test path, so the "Hai frequentato l'anno scorso?" question
+  // (which only drives the test gate) is hidden + cleared for it.
+  const attendedWrap = node.querySelector('[data-attended]');
+  const hideAttended = elig.courseId === 'sds_3_5';
+  attendedWrap.hidden = hideAttended;
+  if (hideAttended) {
+    node.querySelectorAll('[data-field="attended"]').forEach((r) => { r.checked = false; });
+    attendedWrap.classList.remove('invalid');
+  }
+
   applyTestGate(node);   // test status depends on the course (Primaria + "No" → test)
   applyLangBlock(node);  // Primaria Italian-language requirement
   updateSummary();
@@ -1165,18 +1176,21 @@ function validate() {
 
   // Per-child checks
   childrenEl.querySelectorAll('[data-child]').forEach((b) => {
-    // "Hai frequentato l'anno scorso?" is asked of every child (required).
-    const attendedRadio = b.querySelector('[data-field="attended"]:checked');
-    if (!attendedRadio) {
-      b.querySelector('[data-attended]').classList.add('invalid');
-      if (!firstInvalid) firstInvalid = b.querySelector('[data-field="attended"]');
-    } else if (attendedRadio.value === 'Sì') {
-      const classSel = b.querySelector('[data-field="attended_class"]');
-      if (!classSel.value) {
-        b.querySelector('[data-attended-class]').classList.add('invalid');
-        if (!firstInvalid) firstInvalid = classSel;
+    // "Hai frequentato l'anno scorso?" is asked of every child (required) — unless it's
+    // hidden (Infanzia 3–5, which has no test path).
+    if (!b.querySelector('[data-attended]').hidden) {
+      const attendedRadio = b.querySelector('[data-field="attended"]:checked');
+      if (!attendedRadio) {
+        b.querySelector('[data-attended]').classList.add('invalid');
+        if (!firstInvalid) firstInvalid = b.querySelector('[data-field="attended"]');
+      } else if (attendedRadio.value === 'Sì') {
+        const classSel = b.querySelector('[data-field="attended_class"]');
+        if (!classSel.value) {
+          b.querySelector('[data-attended-class]').classList.add('invalid');
+          if (!firstInvalid) firstInvalid = classSel;
+        }
+        // An advanced class (Berg / Leonardo) is allowed — it submits as a test registration.
       }
-      // An advanced class (Berg / Leonardo) is allowed — it submits as a test registration.
     }
 
     // Test children must confirm participation (checkbox under the test info box).
