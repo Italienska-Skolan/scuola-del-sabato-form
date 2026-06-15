@@ -101,7 +101,7 @@
   .sds-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .sds-field { display: flex; flex-direction: column; margin-bottom: 16px; }
   .sds-field[hidden] { display: none; }
-  .sds-field.full, .sds-test-msg.full { grid-column: 1 / -1; }
+  .sds-field.full, .sds-test-msg.full, .sds-elig-msg.full { grid-column: 1 / -1; }
   .sds-field label {
     font-weight: 600;
     font-size: 14px;
@@ -485,8 +485,8 @@
           <option value="">Inserisci prima la data di nascita…</option>
         </select>
         <div class="hint">Il corso viene assegnato automaticamente in base alla data di nascita.</div>
-        <div class="sds-elig-msg" data-elig-msg></div>
       </div>
+      <div class="sds-elig-msg full" data-elig-msg></div>
       <div class="sds-field full" data-giocar-ack hidden>
         <div class="sds-info-note">
           Il corso <strong>Giocar Cantando</strong> necessita della presenza di un genitore
@@ -721,10 +721,15 @@ function applyEligibility(node) {
   populateLanguageSelects(node);
   showReadWriteFields(node, elig.courseId || null);
 
+  // When the date of birth is outside any course band (too young / too old), the child
+  // can't be registered — show only the error and hide the returning-student question
+  // and the whole language assessment.
+  const ineligible = !!elig.error;
+
   // Infanzia (3–5) has no test path, so the "Hai frequentato l'anno scorso?" question
-  // (which only drives the test gate) is hidden + cleared for it.
+  // (which only drives the test gate) is hidden + cleared for it — as is an age error.
   const attendedWrap = node.querySelector('[data-attended]');
-  const hideAttended = elig.courseId === 'sds_3_5';
+  const hideAttended = ineligible || elig.courseId === 'sds_3_5';
   attendedWrap.hidden = hideAttended;
   if (hideAttended) {
     node.querySelectorAll('[data-field="attended"]').forEach((r) => { r.checked = false; });
@@ -733,6 +738,14 @@ function applyEligibility(node) {
 
   applyTestGate(node);   // test status depends on the course (Primaria + "No" → test)
   applyLangBlock(node);  // Primaria Italian-language requirement
+
+  // An ineligible age hides the language sections (and the returning-student class)
+  // outright, overriding whatever applyTestGate just set.
+  if (ineligible) {
+    node.querySelectorAll('[data-hide-on-test]').forEach((el) => { el.hidden = true; });
+    const classWrap = node.querySelector('[data-attended-class]');
+    if (classWrap) classWrap.hidden = true;
+  }
   updateSummary();
 }
 
@@ -1077,6 +1090,8 @@ function computeTotals(children, semId, support) {
     return { child: c, semCount: sem.count, excluded, gross, bothDiscount, multiDiscount: 0, net: 0 };
   });
 
+  // Multi-child discount applies only when 2+ children are paying NOW (test children are
+  // excluded — they pay later, after passing, and their share is handled at that point).
   const payingCount = lines.filter((l) => !l.excluded).length;
   const multiPer = SDS_CONFIG.multiChildDiscountSEK || 0;
   const multiApplies = payingCount > 1 && multiPer > 0;
@@ -1256,15 +1271,47 @@ async function buildPayload() {
   const sem = semesterById(semId);
   const t = computeTotals(children, semId, sdsSupport);
 
-  // Whole-family semester choice → annotate each child for the backend. `courseAmount`
-  // is the course price for the chosen semester(s) (no discounts) — used in the Studenti
-  // tab, and as the amount a test child pays if they pass.
+  // Whole-family semester choice → annotate each child for the backend.
+  //   • courseGross         — notional list price (single-semester price × the count), so
+  //                           the email can show the saving struck through.
+  //   • courseMultiDiscount — the multi-child ("più figli") discount for THIS child.
+  //   • courseAmount        — what the child actually pays (both-semesters saving +
+  //                           multi-child applied). For a test child this is what their
+  //                           Swish QR charges if they pass.
+  // Multi-child rules:
+  //   • Regular (non-test) children get 100 SEK each only when 2+ regular children pay now.
+  //   • A test child, IF they pass, gets 100 SEK — plus, when the only other enrolled
+  //     child is a single regular one who got no discount at registration, that child's
+  //     100 is rolled into the first test child (so a 1-regular + 1-test family lands the
+  //     full 200 SEK discount, applied to the test child's payment).
+  const enrolled = children.filter((c) => c.courseId);
+  const regularCount = enrolled.filter((c) => !c.needsTest).length; // paying now
+  const testCount = enrolled.filter((c) => c.needsTest).length;     // pay if they pass
+  const multiPer = SDS_CONFIG.multiChildDiscountSEK || 0;
+  const regularMultiApplies = regularCount >= 2 && multiPer > 0;
+  const passQualifies = (regularCount + testCount) >= 2 && multiPer > 0;
+  let loneRegularRolled = false;
   children.forEach((c) => {
     c.semester = sem.id; c.semesterLabel = sem.name; c.semesterCount = sem.count;
     const course = SDS_CONFIG.courses.find((x) => x.id === c.courseId);
-    c.courseAmount = course
+    c.courseGross = course ? (sem.count === 2 ? course.price * 2 : course.price) : 0;
+    const afterBoth = course
       ? (sem.count === 2 ? (course.yearPrice != null ? course.yearPrice : course.price * 2) : course.price)
       : 0;
+    let multiDisc = 0;
+    if (course) {
+      if (c.needsTest) {
+        if (passQualifies) {
+          multiDisc = multiPer;
+          if (regularCount === 1 && !loneRegularRolled) { multiDisc += multiPer; loneRegularRolled = true; }
+        }
+      } else if (regularMultiApplies) {
+        multiDisc = multiPer;
+      }
+      multiDisc = Math.min(multiDisc, afterBoth);
+    }
+    c.courseMultiDiscount = multiDisc;
+    c.courseAmount = afterBoth - multiDisc;
   });
 
   return {
