@@ -1405,11 +1405,16 @@ document.getElementById('sds-form').addEventListener('submit', async (e) => {
       // Show the confirmation IN PAGE (no redirect): inside the Wix iframe a navigation
       // breaks the auto-resize, and the payment details live only in the email now (so
       // there's no second Swish QR here — no double-payment risk).
-      const testNames = payload.children
-        .map((c, i) => ({ name: (c.first || '').trim() || ('Bambino ' + (i + 1)), needsTest: c.needsTest }))
-        .filter((c) => c.needsTest)
-        .map((c) => c.name);
-      showConfirmation(testNames, counts.regular > 0);
+      const named = payload.children.map((c, i) => ({
+        name: (c.first || '').trim() || ('Bambino ' + (i + 1)),
+        needsTest: c.needsTest,
+        paying: !c.needsTest && !!c.courseId,
+      }));
+      const testNames = named.filter((c) => c.needsTest).map((c) => c.name);
+      const payNames = named.filter((c) => c.paying).map((c) => c.name);
+      // Stash names for grazie.html (the direct-access fallback) — no QR / amount, names only.
+      try { sessionStorage.setItem('sdsConfirmation', JSON.stringify({ testNames, payNames })); } catch (e) {}
+      showConfirmation(testNames, payNames);
     } else {
       throw new Error((data && data.error) || 'Errore sconosciuto');
     }
@@ -1425,19 +1430,21 @@ document.getElementById('sds-form').addEventListener('submit', async (e) => {
    Swaps the form for a confirmation message in the same page — no iframe navigation
    (so the Wix auto-resize keeps working) and no second Swish QR (payment details are
    only in the email now). */
-function showConfirmation(testNames, hasPay) {
+function showConfirmation(testNames, payNames) {
   const hasTest = testNames.length > 0;
+  const hasPay = payNames.length > 0;
+  const joinNames = (arr) => arr.length === 1
+    ? arr[0]
+    : arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1];
+
   document.getElementById('sds-confirm-msg').textContent = (hasTest && !hasPay)
     ? "Abbiamo registrato l'iscrizione al test. A breve riceverai un'email di conferma."
     : "Abbiamo ricevuto la tua richiesta. A breve riceverai un'email di conferma.";
 
   const testEl = document.getElementById('sds-confirm-test');
   if (hasTest) {
-    const joined = testNames.length === 1
-      ? testNames[0]
-      : testNames.slice(0, -1).join(', ') + ' e ' + testNames[testNames.length - 1];
     const verb = testNames.length === 1 ? 'è iscritto/a' : 'sono iscritti/e';
-    testEl.innerHTML = 'Confermiamo che <strong>' + escapeHtml(joined) + '</strong> ' + verb +
+    testEl.innerHTML = 'Confermiamo che <strong>' + escapeHtml(joinNames(testNames)) + '</strong> ' + verb +
       ' al <strong>test di verifica della lingua italiana</strong>.<br />' +
       'Il test si terrà <strong>sabato 29 agosto dalle 10:00 alle 11:00 a Luntmakargatan 101</strong>. ' +
       "In caso di esito positivo, invieremo una richiesta di pagamento per confermare l'iscrizione definitiva.";
@@ -1446,9 +1453,12 @@ function showConfirmation(testNames, hasPay) {
 
   const payEl = document.getElementById('sds-confirm-pay');
   if (hasPay) {
+    const verb = payNames.length === 1 ? "L'iscrizione di" : 'Le iscrizioni di';
     payEl.innerHTML = '<strong>Pagamento tramite Swish</strong><br />' +
-      "Ti abbiamo inviato un'email con le istruzioni per il pagamento (codice QR, numero Swish e codice di pagamento). " +
-      'Il posto sarà confermato solo dopo il completamento del pagamento.';
+      verb + ' <strong>' + escapeHtml(joinNames(payNames)) + '</strong> ' +
+      (payNames.length === 1 ? 'sarà confermata' : 'saranno confermate') +
+      ' dopo il pagamento. Ti abbiamo inviato un\'email con le istruzioni per il pagamento ' +
+      '(codice QR, numero Swish e codice di pagamento).';
     payEl.hidden = false;
   }
 

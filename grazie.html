@@ -83,9 +83,9 @@
          so there's no risk of paying twice). Shown when there are paying children. -->
     <div class="note swish" id="note-reg" hidden>
       <strong>Pagamento tramite Swish</strong>
-      <p style="margin:8px 0 0">Ti abbiamo inviato un'email con le istruzioni per il pagamento
-        (codice QR, numero Swish e codice di pagamento). Il posto sarà confermato solo dopo
-        il completamento del pagamento.</p>
+      <p id="pay-text" style="margin:8px 0 0">Ti abbiamo inviato un'email con le istruzioni per il
+        pagamento (codice QR, numero Swish e codice di pagamento). Il posto sarà confermato solo
+        dopo il completamento del pagamento.</p>
     </div>
     <div class="actions">
       <a class="btn btn-primary" href="https://www.italienskaskolan.se/">Vai al sito della scuola</a>
@@ -106,23 +106,30 @@
     try { conf = JSON.parse(sessionStorage.getItem('sdsConfirmation') || 'null'); } catch (e) {}
 
     var testNames = (conf && conf.testNames) || [];
+    var payNames  = (conf && conf.payNames) || [];
     var hasTest = testNames.length > 0;
-    var hasPay  = !!(conf && Number(conf.payAmount) > 0);
+    var hasPay  = payNames.length > 0;
+    function joinNames(arr) {
+      return arr.length === 1 ? arr[0] : arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1];
+    }
 
     // --- Scenario: one or more children registered for the test ---
     if (hasTest) {
-      var joined = testNames.length === 1
-        ? testNames[0]
-        : testNames.slice(0, -1).join(', ') + ' e ' + testNames[testNames.length - 1];
       var verb = testNames.length === 1 ? 'è iscritto/a' : 'sono iscritti/e';
       document.getElementById('test-text').innerHTML =
-        'Confermiamo che <strong>' + esc(joined) + '</strong> ' + verb +
+        'Confermiamo che <strong>' + esc(joinNames(testNames)) + '</strong> ' + verb +
         ' al <strong>test di verifica della lingua italiana</strong>.';
       document.getElementById('note-test').hidden = false;
     }
 
-    // --- Scenario: paying children → point them to the payment email ---
+    // --- Scenario: paying children → name them + point to the payment email ---
     if (hasPay) {
+      var verbPay = payNames.length === 1 ? "L'iscrizione di" : 'Le iscrizioni di';
+      document.getElementById('pay-text').innerHTML =
+        verbPay + ' <strong>' + esc(joinNames(payNames)) + '</strong> ' +
+        (payNames.length === 1 ? 'sarà confermata' : 'saranno confermate') +
+        ' dopo il pagamento. Ti abbiamo inviato un\'email con le istruzioni per il pagamento ' +
+        '(codice QR, numero Swish e codice di pagamento).';
       document.getElementById('note-reg').hidden = false;
     }
 
