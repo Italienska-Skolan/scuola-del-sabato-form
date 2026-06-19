@@ -79,25 +79,13 @@
       In caso di esito positivo, invieremo una richiesta di pagamento per confermare l'iscrizione definitiva.
     </div>
 
-    <!-- Swish payment (shown when there are paying children) -->
+    <!-- Payment note (the QR + Swish details live ONLY in the email — single source,
+         so there's no risk of paying twice). Shown when there are paying children. -->
     <div class="note swish" id="note-reg" hidden>
       <strong>Pagamento tramite Swish</strong>
-      <div id="swish-dyn" hidden>
-        <div class="pay-summary" id="pay-summary"></div>
-        <p class="pay-note" id="pay-note" hidden>I bambini iscritti al test non sono inclusi in questo importo:
-          per loro non è previsto alcun pagamento ora.</p>
-        <p class="swish-amt">Importo da pagare: <strong id="swish-amount"></strong></p>
-        <div class="swish-qr" id="swish-qr"></div>
-        <a class="btn btn-primary swish-open" id="swish-open" href="#">Apri Swish</a>
-        <ul class="swish-details">
-          <li><span class="lbl">Numero Swish:</span> <strong id="swish-number"></strong></li>
-          <li><span class="lbl">Messaggio:</span> <strong id="swish-ref"></strong></li>
-        </ul>
-        <p class="swish-foot">Scansiona il QR (da un altro telefono) o tocca <strong>Apri Swish</strong>
-          su questo dispositivo. Il posto sarà confermato solo dopo il completamento del pagamento.</p>
-      </div>
-      <p id="swish-fallback" style="margin:8px 0 0">Riceverai a breve le istruzioni per il pagamento
-        tramite Swish. Il posto sarà confermato solo dopo il completamento del pagamento.</p>
+      <p style="margin:8px 0 0">Ti abbiamo inviato un'email con le istruzioni per il pagamento
+        (codice QR, numero Swish e codice di pagamento). Il posto sarà confermato solo dopo
+        il completamento del pagamento.</p>
     </div>
     <div class="actions">
       <a class="btn btn-primary" href="https://www.italienskaskolan.se/">Vai al sito della scuola</a>
@@ -105,40 +93,21 @@
     </div>
   </div>
   <script>
-    /* ===== Swish (manual / QR) config ===== */
-    var SWISH = {
-      number: '1231311851',   // school's Swish number (keep in sync with SWISH_NUMBER in Code.gs)
-      currency: 'SEK',
-    };
-    // Official Swish "open app" link, prefilled. Scanning it as a QR (from another
-    // phone) or tapping it on mobile opens Swish with amount + message filled in.
-    function swishLink(number, amount, message) {
-      // Format that the Swish app accepts: sw + amt + msg only. Adding cur or a
-      // trailing empty edit= makes Swish reject the link ("incorrect format").
-      return 'https://app.swish.nu/1/p/sw/?sw=' + encodeURIComponent(number) +
-        '&amt=' + encodeURIComponent(amount) +
-        '&msg=' + encodeURIComponent(message || '');
-    }
     function esc(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
       });
     }
-    function fmtSEK(n, cur) {
-      return (Math.round(Number(n) || 0)).toLocaleString('it-IT') + ' ' + cur;
-    }
 
-    // The form hands us the confirmation via sessionStorage (same origin), so no
-    // personal data (child names) ever travels in the URL.
+    // The form now shows its confirmation IN PAGE; this page is only a fallback for
+    // direct access. If a confirmation was stashed in sessionStorage (same origin), use
+    // it to tailor the message. The Swish QR + payment details live ONLY in the email.
     var conf = null;
     try { conf = JSON.parse(sessionStorage.getItem('sdsConfirmation') || 'null'); } catch (e) {}
 
     var testNames = (conf && conf.testNames) || [];
-    var payAmount = (conf && Number(conf.payAmount)) || 0;
-    var payRef    = (conf && conf.payRef) || '';
-    var currency  = (conf && conf.currency) || SWISH.currency;
     var hasTest = testNames.length > 0;
-    var hasPay  = payAmount > 0;
+    var hasPay  = !!(conf && Number(conf.payAmount) > 0);
 
     // --- Scenario: one or more children registered for the test ---
     if (hasTest) {
@@ -152,45 +121,9 @@
       document.getElementById('note-test').hidden = false;
     }
 
-    // --- Scenario: paying children → Swish for the total of the non-test children ---
-    var swishConfigured = SWISH.number.indexOf('PASTE_') !== 0;
+    // --- Scenario: paying children → point them to the payment email ---
     if (hasPay) {
       document.getElementById('note-reg').hidden = false;
-      if (swishConfigured) {
-        document.getElementById('swish-fallback').hidden = true;
-        document.getElementById('swish-dyn').hidden = false;
-
-        // Itemised breakdown of what is being paid (test children are not listed).
-        var ps = conf && conf.paySummary;
-        if (ps) {
-          var rows = '';
-          (ps.lines || []).forEach(function (l) {
-            var sem = l.semesters === 2 ? '2 semestri' : '1 semestre';
-            var course = l.course ? ' <span class="course">— ' + esc(l.course) + ' · ' + sem + '</span>' : '';
-            var amount = (l.gross != null && l.net < l.gross)
-              ? '<s class="course">' + fmtSEK(l.gross, currency) + '</s> ' + fmtSEK(l.net, currency)
-              : fmtSEK(l.net, currency);
-            rows += '<tr><td>' + esc(l.name) + course + '</td><td class="amt">' + amount + '</td></tr>';
-          });
-          if (ps.support > 0) rows += '<tr><td>Contributo di sostegno</td><td class="amt">+ ' + fmtSEK(ps.support, currency) + '</td></tr>';
-          document.getElementById('pay-summary').innerHTML = '<table>' + rows + '</table>';
-        }
-        document.getElementById('pay-note').hidden = !hasTest; // clarify test kids aren't charged
-
-        document.getElementById('swish-amount').textContent = fmtSEK(payAmount, currency);
-        document.getElementById('swish-number').textContent = SWISH.number;
-        document.getElementById('swish-ref').textContent = payRef || '—';
-        document.getElementById('swish-open').href = swishLink(SWISH.number, payAmount, payRef);
-        // Render the REAL Swish QR (generated server-side — a QR of the link is not a
-        // valid Swish code and the Swish scanner rejects it). If it's missing, hide the
-        // QR box and rely on the "Apri Swish" button + the written number/message.
-        var qrBox = document.getElementById('swish-qr');
-        if (conf && conf.qr) {
-          qrBox.innerHTML = '<img src="' + conf.qr + '" width="220" height="220" alt="Codice QR Swish" />';
-        } else {
-          qrBox.hidden = true;
-        }
-      }
     }
 
     // --- Headline message ---
