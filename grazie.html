@@ -17,8 +17,11 @@
     font-family: 'Raleway', 'Helvetica Neue', Arial, sans-serif;
     display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px;
   }
+  /* When embedded in an iframe (Wix), don't force full-window centering — let the iframe
+     size to the card (the page reports its height to the parent, see the script). */
+  body.embedded { display: block; min-height: 0; }
   .card {
-    background: #fff; border-radius: 16px; max-width: 520px; width: 100%;
+    background: #fff; border-radius: 16px; max-width: 520px; width: 100%; margin: 0 auto;
     padding: 40px 32px; text-align: center; box-shadow: 0 8px 30px rgba(31,42,107,0.08);
   }
   .check {
@@ -195,6 +198,21 @@
       document.getElementById('msg').innerHTML =
         "Abbiamo registrato l'iscrizione al test. A breve riceverai un'email di conferma.";
     }
+
+    // --- Embedded in an iframe (Wix): drop full-window centering and report the card
+    // height to the parent, so the Velo snippet sizes the iframe to the content
+    // (same { sdsHeight } message the form uses). ---
+    (function reportHeightToParent() {
+      if (window.parent === window) return; // not embedded
+      document.body.classList.add('embedded');
+      var post = function () {
+        window.parent.postMessage({ sdsHeight: Math.ceil(document.documentElement.scrollHeight) }, '*');
+      };
+      window.addEventListener('load', post);
+      window.addEventListener('resize', post);
+      if (window.ResizeObserver) new ResizeObserver(post).observe(document.body);
+      post();
+    })();
   </script>
 </body>
 </html>
