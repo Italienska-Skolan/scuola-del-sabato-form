@@ -740,10 +740,11 @@ function applyEligibility(node) {
   // and the whole language assessment.
   const ineligible = !!elig.error;
 
-  // Infanzia (3–5) has no test path, so the "Hai frequentato l'anno scorso?" question
-  // (which only drives the test gate) is hidden + cleared for it — as is an age error.
+  // "Hai frequentato l'anno scorso?" only drives the test gate, which exists for Primaria
+  // (6–12) only. So it's hidden + cleared for Infanzia (3–5) and Giocar Cantando (neither
+  // has a test path), and for an age error.
   const attendedWrap = node.querySelector('[data-attended]');
-  const hideAttended = ineligible || elig.courseId === 'sds_3_5';
+  const hideAttended = ineligible || elig.courseId === 'sds_3_5' || elig.courseId === 'giocar_cantando';
   attendedWrap.hidden = hideAttended;
   if (hideAttended) {
     node.querySelectorAll('[data-field="attended"]').forEach((r) => { r.checked = false; });
@@ -753,10 +754,13 @@ function applyEligibility(node) {
   applyTestGate(node);   // test status depends on the course (Primaria + "No" → test)
   applyLangBlock(node);  // Primaria Italian-language requirement
 
-  // An ineligible age hides the language sections (and the returning-student class)
-  // outright, overriding whatever applyTestGate just set.
-  if (ineligible) {
+  // Giocar Cantando (and an out-of-range age) skip the whole language assessment + the
+  // returning-student class dropdown — override whatever applyTestGate just set, and clear
+  // any stale language answers so they aren't sent.
+  const hideLang = ineligible || elig.courseId === 'giocar_cantando';
+  if (hideLang) {
     node.querySelectorAll('[data-hide-on-test]').forEach((el) => { el.hidden = true; });
+    node.querySelectorAll('select[data-lang]').forEach((s) => { s.value = ''; });
     const classWrap = node.querySelector('[data-attended-class]');
     if (classWrap) classWrap.hidden = true;
   }
