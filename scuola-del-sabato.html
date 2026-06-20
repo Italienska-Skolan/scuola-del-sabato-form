@@ -330,11 +330,11 @@
     <h2>Calendario dell'anno</h2>
     <div class="sds-highlight">
       <strong>Novità di quest'anno:</strong> aumentiamo il numero di lezioni:
-      da <strong>10</strong> passiamo a <strong>12 incontri</strong> per ogni semestre.
+      da <strong>10</strong> passiamo a <strong>12 incontri</strong> per ogni quadrimestre.
     </div>
     <div class="sds-term-grid">
       <div class="sds-term">
-        <h3>Semestre autunnale (HT26) — 12 incontri</h3>
+        <h3>Quadrimestre autunnale (HT26) — 12 incontri</h3>
         <ul>
           <li><strong>Inizio:</strong> 12 settembre</li>
           <li><strong>Fine:</strong> 12 dicembre</li>
@@ -342,7 +342,7 @@
         </ul>
       </div>
       <div class="sds-term">
-        <h3>Semestre primaverile (VT27) — 12 incontri</h3>
+        <h3>Quadrimestre primaverile (VT27) — 12 incontri</h3>
         <ul>
           <li><strong>Inizio:</strong> 16 gennaio</li>
           <li><strong>Fine:</strong> 15 maggio</li>
@@ -395,9 +395,9 @@
       <p class="sds-section-sub">Il costo viene calcolato automaticamente in base ai corsi selezionati.</p>
 
       <div class="sds-field full" id="sds-semester-field">
-        <label>Per quali semestri vuoi iscrivere? <span class="req">*</span></label>
+        <label>Per quali quadrimestri vuoi iscrivere? <span class="req">*</span></label>
         <div class="sds-radio-group sds-semester-group" id="sds-semester-group"></div>
-        <div class="hint">Iscrivendoti per <strong>entrambi i semestri</strong> ottieni uno sconto.</div>
+        <div class="hint">Iscrivendoti per <strong>entrambi i quadrimestri</strong> ottieni uno sconto.</div>
       </div>
 
       <table class="sds-summary-table" id="sds-summary">
@@ -636,7 +636,7 @@ const SDS_CONFIG = {
 
   // Family-level semester choice (one selection applies to all children).
   semesters: [
-    { id: 'both', name: 'Entrambi i semestri (HT26 + VT27)', count: 2 },
+    { id: 'both', name: 'Entrambi i quadrimestri (HT26 + VT27)', count: 2 },
     { id: 'ht26', name: 'Solo autunno (HT26)',               count: 1 },
   ],
 
@@ -1151,7 +1151,7 @@ function updateSummary() {
     return;
   }
   const t = computeTotals(children, familySemesterId(), sdsSupport);
-  const semLabel = t.semCount === 2 ? '2 semestri' : '1 semestre';
+  const semLabel = t.semCount === 2 ? '2 quadrimestri' : '1 quadrimestre';
   t.lines.forEach((l, i) => {
     if (l.child.needsTest) return; // test children aren't part of the order
     const name = (l.child.first || l.child.last) ? (l.child.first + ' ' + l.child.last).trim() : 'Bambino ' + (i + 1);
@@ -1167,7 +1167,7 @@ function updateSummary() {
   });
   let footHtml = '';
   if (t.bothDiscountTotal > 0) {
-    footHtml += '<tr><td colspan="2" class="sds-discount">Sconto entrambi i semestri</td>' +
+    footHtml += '<tr><td colspan="2" class="sds-discount">Sconto entrambi i quadrimestri</td>' +
       '<td class="amount sds-discount">− ' + fmtMoney(t.bothDiscountTotal) + '</td></tr>';
   }
   if (t.multiDiscountTotal > 0) {
