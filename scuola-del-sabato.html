@@ -1281,14 +1281,9 @@ function setStatus(msg, kind) {
   el.className = 'sds-form-status ' + (kind || '');
 }
 
-/* -------- Submit -------- */
-/* Short, non-personal payment reference (shown in the Swish message + logged),
-   so the school can match an incoming Swish payment to a registration. */
-function genPaymentRef() {
-  const d = new Date().toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
-  return 'SdS-' + d + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
-}
-
+/* -------- Submit --------
+   The payment reference is assigned server-side (one SAB<n> per child, from a persistent
+   counter), so the frontend no longer generates one. */
 async function buildPayload() {
   const form = document.getElementById('sds-form');
   const children = collectChildren();
@@ -1340,7 +1335,6 @@ async function buildPayload() {
   });
 
   return {
-    paymentRef: t.paidCount > 0 ? genPaymentRef() : '',
     parent: {
       first: form.parent_first.value.trim(),
       last: form.parent_last.value.trim(),
