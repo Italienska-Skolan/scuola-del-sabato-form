@@ -52,6 +52,11 @@
   .sds-wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 
   /* Header banner */
+  .sds-back {
+    display: inline-block; margin-bottom: 14px; color: var(--isk-blue);
+    text-decoration: none; font-size: 14px; font-weight: 600;
+  }
+  .sds-back:hover { text-decoration: underline; }
   .sds-banner {
     background: var(--isk-band-bg);
     border-radius: var(--isk-radius);
@@ -308,6 +313,8 @@
 </head>
 <body>
 <div class="sds-wrap">
+
+  <a class="sds-back" href="https://www.italienskaskolan.se/">← Torna a italienskaskolan.se</a>
 
   <!-- HEADER -->
   <div class="sds-banner">
@@ -1462,9 +1469,9 @@ function showConfirmation(testNames, payNames) {
     payEl.hidden = false;
   }
 
-  // Swap the form view for the confirmation, keeping only the banner.
+  // Swap the form view for the confirmation, keeping the back-link + banner.
   Array.from(document.querySelector('.sds-wrap').children).forEach((el) => {
-    if (el.classList.contains('sds-banner') || el.id === 'sds-confirmation') return;
+    if (el.classList.contains('sds-back') || el.classList.contains('sds-banner') || el.id === 'sds-confirmation') return;
     el.style.display = 'none';
   });
   document.getElementById('sds-confirmation').hidden = false;
