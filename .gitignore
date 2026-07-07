@@ -4,3 +4,10 @@ CLAUDE.md
 .claude/
 .DS_Store
 *.ai
+
+# Documentation tooling + generated docs (local only)
+node_modules/
+package.json
+package-lock.json
+gen-doc.js
+*.docx

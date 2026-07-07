@@ -457,6 +457,7 @@
     <h2 style="margin:0 0 8px">Grazie!</h2>
     <p id="sds-confirm-msg" style="margin:0 0 16px">Abbiamo ricevuto la tua richiesta. A breve riceverai un'email di conferma.</p>
     <div class="sds-test-msg sds-test-info full" id="sds-confirm-test" hidden style="text-align:left"></div>
+    <div class="sds-test-msg sds-test-info full" id="sds-confirm-waitlist" hidden style="text-align:left;margin-top:14px"></div>
     <div class="sds-note" id="sds-confirm-pay" hidden style="text-align:left;margin-top:14px"></div>
   </div>
 </div>
@@ -554,6 +555,15 @@
         </label>
         <div class="sds-error">È necessario confermare la partecipazione al test.</div>
       </div>
+      <div class="sds-test-msg sds-test-info full" data-waitlist-msg hidden></div>
+      <div class="sds-field full" data-waitlist-ack hidden>
+        <label class="sds-consent">
+          <input type="checkbox" data-field="waitlist_ack" />
+          <span>Confermo di voler essere inserito/a in lista d'attesa e di essere consapevole che
+          l'iscrizione non è garantita. <span class="req">*</span></span>
+        </label>
+        <div class="sds-error">È necessario confermare la lista d'attesa.</div>
+      </div>
     </div>
 
     <!-- Language assessment (per child) -->
@@ -630,7 +640,7 @@ const SDS_CONFIG = {
   // Primaria = 6–12.)
   courses: [
     { id: 'sds_3_5',         name: 'Infanzia (3–5 anni)',  price: 2800, yearPrice: 5000 },
-    { id: 'sds_6_12',        name: 'Primaria (6–12 anni)',  price: 3600, yearPrice: 6600 },
+    { id: 'sds_6_12',        name: 'Primaria (6–13 anni)',  price: 3600, yearPrice: 6600 },
     { id: 'giocar_cantando', name: 'Giocar Cantando',       price: 1200, yearPrice: 2200 },
   ],
 
@@ -682,14 +692,14 @@ function ageFromDob(dobStr) {
 
 /* Eligibility — maps a date of birth to exactly one course, or an error.
    Contiguous bands, no gaps/overlaps (confirmed with the school):
-     • born before 1 Jan 2014        → error (too old, max 12)
-     • born 2014–2020                → Scuola del Sabato 6–12 anni
+     • born before 1 Jan 2013        → error (too old, max 13)
+     • born 2013–2020                → Scuola del Sabato 6–13 anni
      • born 1 Jan 2021 – 30 Sep 2023 → Scuola del Sabato 3–5 anni
      • born 1 Oct 2023 – 31 Mar 2026 → Giocar Cantando
      • born after 31 Mar 2026        → error (too young) */
 const ELIG_MSG = {
   tooYoung: 'Siamo spiacenti, ma al momento non è possibile iscrivere bambini nati dopo il 31 marzo 2026.',
-  tooOld:   "Siamo spiacenti, ma l'età massima per iscriversi alla Scuola del Sabato è di 12 anni.",
+  tooOld:   "Siamo spiacenti, ma l'età massima per iscriversi alla Scuola del Sabato è di 13 anni.",
 };
 
 function computeEligibility(dobStr) {
@@ -697,13 +707,50 @@ function computeEligibility(dobStr) {
   if (!m) return { courseId: null, error: null, empty: true };
   const y = +m[1], mo = +m[2]; // mo: 1-12 (day not needed — all cuts fall on month boundaries)
 
-  if (y <= 2013) return { courseId: null, error: ELIG_MSG.tooOld };           // before 1 Jan 2014
+  if (y <= 2012) return { courseId: null, error: ELIG_MSG.tooOld };           // before 1 Jan 2013 (max 13)
   if (y > 2026 || (y === 2026 && mo >= 4)) return { courseId: null, error: ELIG_MSG.tooYoung }; // after 31 Mar 2026
 
-  if (y >= 2014 && y <= 2020) return { courseId: 'sds_6_12', error: null };   // Primaria (6–12 anni)
+  if (y >= 2013 && y <= 2020) return { courseId: 'sds_6_12', error: null };   // Primaria (6–13 anni)
   if (y === 2021 || y === 2022 || (y === 2023 && mo <= 9)) return { courseId: 'sds_3_5', error: null }; // Infanzia, ≤ 30 Sep 2023
 
   return { courseId: 'giocar_cantando', error: null }; // 1 Oct 2023 – 31 Mar 2026
+}
+
+/* ---- Course open/closed status (self-serve, read live from the backend) ----
+   The school sets each course Aperto/Chiuso (+ an optional message) in the "Impostazioni"
+   tab; the backend's doGet returns it. Keyed by course NAME (must match SDS_CONFIG.courses).
+   Fail-open: if the fetch fails, the map stays empty and every course is treated as open. */
+let courseStatus = {};
+async function loadCourseStatus() {
+  try {
+    const res = await fetch(SDS_CONFIG.appsScriptUrl, { method: 'GET' });
+    const data = await res.json().catch(() => null);
+    if (data && Array.isArray(data.courses)) {
+      const map = {};
+      data.courses.forEach((c) => {
+        map[String(c.corso || '').trim().toLowerCase()] = {
+          closed: String(c.stato || '').trim().toLowerCase().indexOf('chius') === 0,
+          message: String(c.messaggio || ''),
+        };
+      });
+      courseStatus = map;
+    }
+  } catch (e) { /* fail-open: leave all courses open */ }
+  childrenEl.querySelectorAll('[data-child]').forEach(applyEligibility); // re-apply with statuses
+}
+
+/* Closed-enrollment info for a course id, or null if open/unknown. */
+function courseClosedInfo(courseId) {
+  const course = SDS_CONFIG.courses.find((c) => c.id === courseId);
+  if (!course) return null;
+  const st = courseStatus[String(course.name).trim().toLowerCase()];
+  return (st && st.closed) ? st : null;
+}
+const DEFAULT_WAITLIST_MSG = 'Le iscrizioni per questo corso sono al momento chiuse. ' +
+  'Puoi comunque registrarti in lista d\'attesa: ti contatteremo se si libera un posto.';
+function childIsWaitlisted(b) {
+  const courseId = (b.querySelector('[data-field="course"]') || {}).value;
+  return !!courseClosedInfo(courseId);
 }
 
 function applyEligibility(node) {
@@ -711,16 +758,27 @@ function applyEligibility(node) {
   const courseSel = node.querySelector('[data-field="course"]');
   const msg = node.querySelector('[data-elig-msg]');
   const elig = computeEligibility(dob.value);
+  const closedInfo = elig.courseId ? courseClosedInfo(elig.courseId) : null;
+  const isClosed = !!closedInfo; // course enrolment closed → this child goes on the waitlist
 
-  // Giocar Cantando requires a parent-presence acknowledgment
+  // Giocar Cantando requires a parent-presence acknowledgment (not when the course is closed).
   const ackWrap = node.querySelector('[data-giocar-ack]');
   const ackBox = node.querySelector('[data-field="giocar_ack"]');
   const isGiocar = elig.courseId === 'giocar_cantando';
-  ackWrap.hidden = !isGiocar;
-  if (!isGiocar) {
+  ackWrap.hidden = !isGiocar || isClosed;
+  if (!isGiocar || isClosed) {
     ackBox.checked = false;
     ackWrap.classList.remove('invalid');
   }
+
+  // Waitlist notice + acknowledgment when the assigned course is closed.
+  const wlMsg = node.querySelector('[data-waitlist-msg]');
+  const wlAckWrap = node.querySelector('[data-waitlist-ack]');
+  const wlAckBox = node.querySelector('[data-field="waitlist_ack"]');
+  if (wlMsg) wlMsg.hidden = !isClosed;
+  if (wlAckWrap) wlAckWrap.hidden = !isClosed;
+  if (isClosed && wlMsg) wlMsg.textContent = closedInfo.message || DEFAULT_WAITLIST_MSG;
+  if (!isClosed) { if (wlAckBox) wlAckBox.checked = false; if (wlAckWrap) wlAckWrap.classList.remove('invalid'); }
 
   if (elig.error) {
     fillSelect(courseSel, []);
@@ -751,7 +809,7 @@ function applyEligibility(node) {
   // (6–12) only. So it's hidden + cleared for Infanzia (3–5) and Giocar Cantando (neither
   // has a test path), and for an age error.
   const attendedWrap = node.querySelector('[data-attended]');
-  const hideAttended = ineligible || elig.courseId === 'sds_3_5' || elig.courseId === 'giocar_cantando';
+  const hideAttended = ineligible || isClosed || elig.courseId === 'sds_3_5' || elig.courseId === 'giocar_cantando';
   attendedWrap.hidden = hideAttended;
   if (hideAttended) {
     node.querySelectorAll('[data-field="attended"]').forEach((r) => { r.checked = false; });
@@ -764,7 +822,7 @@ function applyEligibility(node) {
   // Giocar Cantando (and an out-of-range age) skip the whole language assessment + the
   // returning-student class dropdown — override whatever applyTestGate just set, and clear
   // any stale language answers so they aren't sent.
-  const hideLang = ineligible || elig.courseId === 'giocar_cantando';
+  const hideLang = ineligible || isClosed || elig.courseId === 'giocar_cantando';
   if (hideLang) {
     node.querySelectorAll('[data-hide-on-test]').forEach((el) => { el.hidden = true; });
     node.querySelectorAll('select[data-lang]').forEach((s) => { s.value = ''; });
@@ -842,6 +900,7 @@ function applyTestGate(node) {
    • they qualify for Primaria (6–12 anni) and did NOT attend last year.
    Side-effect-free — safe to call anywhere. */
 function childNeedsTest(b) {
+  if (childIsWaitlisted(b)) return false; // closed course → waitlist, not test
   const r = b.querySelector('[data-field="attended"]:checked');
   const attended = r ? r.value : '';
   const cl = b.querySelector('[data-field="attended_class"]');
@@ -873,31 +932,29 @@ function anyTestRequired() {
   return Array.from(childrenEl.querySelectorAll('[data-child]')).some(childNeedsTest);
 }
 
-/* Counts of test vs regular children in the form. */
+/* Counts of test / waitlist / regular (paying-now) children in the form. */
 function testCounts() {
   const blocks = Array.from(childrenEl.querySelectorAll('[data-child]'));
   const test = blocks.filter(childNeedsTest).length;
-  return { test: test, regular: blocks.length - test, total: blocks.length };
+  const waitlist = blocks.filter(childIsWaitlisted).length;
+  return { test: test, waitlist: waitlist, regular: blocks.length - test - waitlist, total: blocks.length };
 }
 
-/* The submit button label reflects what the submission will do:
-   • every child is a test case      → "Registrati al Test"
-   • a mix of test + paying children → "Invia registrazione e iscrizione al test"
-   • no test children                → "Invia registrazione" */
+/* The submit button label reflects what the submission will do. */
 function submitLabel() {
-  const { test, regular } = testCounts();
+  const { test, regular, waitlist } = testCounts();
+  if (regular === 0 && test === 0 && waitlist > 0) return 'Invia registrazione in lista d\'attesa';
   if (test > 0 && regular === 0) return 'Registrati al Test';
   if (test > 0) return 'Invia registrazione e iscrizione al test';
   return 'Invia registrazione';
 }
 
-/* Only when EVERY child is a test case does the form become a pure test registration
-   (summary hidden, button relabelled). With a mix, the summary stays for the paying child(ren). */
+/* Hide the cost summary when no child pays now (all test and/or waitlist); it stays for
+   any paying child. */
 function updateTestMode() {
-  const { test, regular } = testCounts();
-  const pureTest = test > 0 && regular === 0;
+  const { regular } = testCounts();
   const section = document.getElementById('sds-summary-section');
-  if (section) section.hidden = pureTest;
+  if (section) section.hidden = regular === 0;
   const btn = document.getElementById('sds-submit');
   if (btn) btn.textContent = submitLabel();
 }
@@ -1070,6 +1127,8 @@ function collectChildren() {
       attended: (() => { const r = b.querySelector('[data-field="attended"]:checked'); return r ? r.value : ''; })(),
       attendedClass: val('attended_class'),
       needsTest: childNeedsTest(b),
+      waitlisted: childIsWaitlisted(b),
+      waitlistAck: (() => { const cb = b.querySelector('[data-field="waitlist_ack"]'); return cb ? cb.checked : false; })(),
       waitlist: 'No',
       it_understand: val('it_understand'), it_speak: val('it_speak'),
       it_read: val('it_read'), it_write: val('it_write'),
@@ -1101,7 +1160,7 @@ function computeTotals(children, semId, support) {
 
   const lines = children.map((c) => {
     const course = SDS_CONFIG.courses.find((x) => x.id === c.courseId);
-    const excluded = c.needsTest || !c.courseId;
+    const excluded = c.needsTest || c.waitlisted || !c.courseId;
     let gross = 0, bothDiscount = 0;
     if (course && !excluded) {
       if (isBoth) {
@@ -1153,7 +1212,7 @@ function updateSummary() {
   const t = computeTotals(children, familySemesterId(), sdsSupport);
   const semLabel = t.semCount === 2 ? '2 quadrimestri' : '1 quadrimestre';
   t.lines.forEach((l, i) => {
-    if (l.child.needsTest) return; // test children aren't part of the order
+    if (l.child.needsTest || l.child.waitlisted) return; // test + waitlist children aren't part of the order
     const name = (l.child.first || l.child.last) ? (l.child.first + ' ' + l.child.last).trim() : 'Bambino ' + (i + 1);
     const courseCell = l.child.courseId
       ? escapeHtml(l.child.courseName || '—') + ' <span style="color:var(--isk-muted)">· ' + semLabel + '</span>'
@@ -1242,6 +1301,15 @@ function validate() {
       }
     }
 
+    // Waitlisted children (closed course) must confirm they want the waitlist.
+    if (childIsWaitlisted(b)) {
+      const wlBox = b.querySelector('[data-field="waitlist_ack"]');
+      if (wlBox && !wlBox.checked) {
+        b.querySelector('[data-waitlist-ack]').classList.add('invalid');
+        if (!firstInvalid) firstInvalid = wlBox;
+      }
+    }
+
     // Course eligibility (only when a DOB is present; empty DOB is caught above)
     const dobEl = b.querySelector('[data-field="dob"]');
     if (!dobEl.value.trim()) return;
@@ -1305,8 +1373,8 @@ async function buildPayload() {
   //     100 is rolled into the first test child (so a 1-regular + 1-test family lands the
   //     full 200 SEK discount, applied to the test child's payment).
   const enrolled = children.filter((c) => c.courseId);
-  const regularCount = enrolled.filter((c) => !c.needsTest).length; // paying now
-  const testCount = enrolled.filter((c) => c.needsTest).length;     // pay if they pass
+  const regularCount = enrolled.filter((c) => !c.needsTest && !c.waitlisted).length; // paying now
+  const testCount = enrolled.filter((c) => c.needsTest && !c.waitlisted).length;     // pay if they pass
   const multiPer = SDS_CONFIG.multiChildDiscountSEK || 0;
   const regularMultiApplies = regularCount >= 2 && multiPer > 0;
   const passQualifies = (regularCount + testCount) >= 2 && multiPer > 0;
@@ -1319,7 +1387,7 @@ async function buildPayload() {
       ? (sem.count === 2 ? (course.yearPrice != null ? course.yearPrice : course.price * 2) : course.price)
       : 0;
     let multiDisc = 0;
-    if (course) {
+    if (course && !c.waitlisted) {
       if (c.needsTest) {
         if (passQualifies) {
           multiDisc = multiPer;
@@ -1331,7 +1399,7 @@ async function buildPayload() {
       multiDisc = Math.min(multiDisc, afterBoth);
     }
     c.courseMultiDiscount = multiDisc;
-    c.courseAmount = afterBoth - multiDisc;
+    c.courseAmount = c.waitlisted ? 0 : afterBoth - multiDisc; // waitlisted children don't pay now
   });
 
   return {
@@ -1409,13 +1477,15 @@ document.getElementById('sds-form').addEventListener('submit', async (e) => {
       const named = payload.children.map((c, i) => ({
         name: (c.first || '').trim() || ('Bambino ' + (i + 1)),
         needsTest: c.needsTest,
-        paying: !c.needsTest && !!c.courseId,
+        waitlisted: c.waitlisted,
+        paying: !c.needsTest && !c.waitlisted && !!c.courseId,
       }));
       const testNames = named.filter((c) => c.needsTest).map((c) => c.name);
       const payNames = named.filter((c) => c.paying).map((c) => c.name);
+      const waitlistNames = named.filter((c) => c.waitlisted).map((c) => c.name);
       // Stash names for grazie.html (the direct-access fallback) — no QR / amount, names only.
-      try { sessionStorage.setItem('sdsConfirmation', JSON.stringify({ testNames, payNames })); } catch (e) {}
-      showConfirmation(testNames, payNames);
+      try { sessionStorage.setItem('sdsConfirmation', JSON.stringify({ testNames, payNames, waitlistNames })); } catch (e) {}
+      showConfirmation(testNames, payNames, waitlistNames);
     } else {
       throw new Error((data && data.error) || 'Errore sconosciuto');
     }
@@ -1431,9 +1501,11 @@ document.getElementById('sds-form').addEventListener('submit', async (e) => {
    Swaps the form for a confirmation message in the same page — no iframe navigation
    (so the Wix auto-resize keeps working) and no second Swish QR (payment details are
    only in the email now). */
-function showConfirmation(testNames, payNames) {
+function showConfirmation(testNames, payNames, waitlistNames) {
+  waitlistNames = waitlistNames || [];
   const hasTest = testNames.length > 0;
   const hasPay = payNames.length > 0;
+  const hasWaitlist = waitlistNames.length > 0;
   const joinNames = (arr) => arr.length === 1
     ? arr[0]
     : arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1];
@@ -1441,6 +1513,14 @@ function showConfirmation(testNames, payNames) {
   document.getElementById('sds-confirm-msg').textContent = (hasTest && !hasPay)
     ? "Abbiamo registrato l'iscrizione al test. A breve riceverai un'email di conferma."
     : "Abbiamo ricevuto la tua richiesta. A breve riceverai un'email di conferma.";
+
+  const wlEl = document.getElementById('sds-confirm-waitlist');
+  if (hasWaitlist && wlEl) {
+    const verb = waitlistNames.length === 1 ? 'è stato/a inserito/a' : 'sono stati/e inseriti/e';
+    wlEl.innerHTML = 'Confermiamo che <strong>' + escapeHtml(joinNames(waitlistNames)) + '</strong> ' + verb +
+      ' in <strong>lista d\'attesa</strong>. Ti contatteremo se si libera un posto nel corso.';
+    wlEl.hidden = false;
+  }
 
   const testEl = document.getElementById('sds-confirm-test');
   if (hasTest) {
@@ -1535,6 +1615,9 @@ initSupportControls();
 // Start with one child block
 addChild();
 updateSummary();
+
+// Fetch which courses are open/closed (self-serve, from the backend). Fail-open on error.
+loadCourseStatus();
 
 /* -------- Wix embed: report height to the parent page --------
    When embedded in Wix via an iframe (Embed a Site / HtmlComponent), the iframe
