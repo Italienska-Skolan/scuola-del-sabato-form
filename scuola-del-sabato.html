@@ -694,30 +694,35 @@ function ageFromDob(dobStr) {
   return age;
 }
 
-/* Eligibility — maps a date of birth to exactly one course, or an error.
-   Contiguous bands, no gaps/overlaps (confirmed with the school):
-     • born before 1 Jan 2013        → error (too old, max 13)
-     • born 2013–2020                → Scuola del Sabato 6–13 anni
-     • born 1 Jan 2021 – 30 Sep 2023 → Scuola del Sabato 3–5 anni
-     • born 1 Oct 2023 – 31 Mar 2026 → Giocar Cantando
-     • born after 31 Mar 2026        → error (too young) */
+/* Eligibility — maps a date of birth to exactly one course, or an error, based on the child's
+   age AT THE START OF THE COURSES (COURSE_START), not their age today. Brackets (age at start):
+     • < 6 mesi         → error (troppo piccolo)
+     • 6 mesi – < 3 anni → Giocar Cantando
+     • 3 – 5 anni (< 6)  → Scuola del Sabato 3–5 anni (Infanzia)
+     • 6 – 13 anni (< 14)→ Scuola del Sabato 6–13 anni (Primaria)
+     • ≥ 14 anni         → error (troppo grande) */
+const COURSE_START = new Date(2026, 8, 12); // 12 settembre 2026 (mese 0-based: 8 = settembre)
 const ELIG_MSG = {
-  tooYoung: 'Siamo spiacenti, ma al momento non è possibile iscrivere bambini nati dopo il 31 marzo 2026.',
-  tooOld:   "Siamo spiacenti, ma l'età massima per iscriversi alla Scuola del Sabato è di 13 anni.",
+  tooYoung: 'Siamo spiacenti, ma all\'inizio dei corsi il bambino/a deve avere almeno 6 mesi.',
+  tooOld:   "Siamo spiacenti, ma l'età massima per iscriversi alla Scuola del Sabato è di 13 anni (all'inizio dei corsi).",
 };
 
 function computeEligibility(dobStr) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((dobStr || '').trim());
   if (!m) return { courseId: null, error: null, empty: true };
-  const y = +m[1], mo = +m[2]; // mo: 1-12 (day not needed — all cuts fall on month boundaries)
+  const dob = new Date(+m[1], +m[2] - 1, +m[3]);
+  if (isNaN(dob)) return { courseId: null, error: null, empty: true };
 
-  if (y <= 2012) return { courseId: null, error: ELIG_MSG.tooOld };           // before 1 Jan 2013 (max 13)
-  if (y > 2026 || (y === 2026 && mo >= 4)) return { courseId: null, error: ELIG_MSG.tooYoung }; // after 31 Mar 2026
+  // Età all'inizio dei corsi, in mesi interi (e anni derivati).
+  let months = (COURSE_START.getFullYear() - dob.getFullYear()) * 12 + (COURSE_START.getMonth() - dob.getMonth());
+  if (COURSE_START.getDate() < dob.getDate()) months--;
+  const years = Math.floor(months / 12);
 
-  if (y >= 2013 && y <= 2020) return { courseId: 'sds_6_12', error: null };   // Primaria (6–13 anni)
-  if (y === 2021 || y === 2022 || (y === 2023 && mo <= 9)) return { courseId: 'sds_3_5', error: null }; // Infanzia, ≤ 30 Sep 2023
-
-  return { courseId: 'giocar_cantando', error: null }; // 1 Oct 2023 – 31 Mar 2026
+  if (months < 6)  return { courseId: null, error: ELIG_MSG.tooYoung };  // < 6 mesi
+  if (months < 36) return { courseId: 'giocar_cantando', error: null };  // 6 mesi – < 3 anni
+  if (years < 6)   return { courseId: 'sds_3_5', error: null };          // 3 – 5 anni
+  if (years < 14)  return { courseId: 'sds_6_12', error: null };         // 6 – 13 anni
+  return { courseId: null, error: ELIG_MSG.tooOld };                     // ≥ 14 anni
 }
 
 /* ---- Course open/closed status (self-serve, read live from the backend) ----
@@ -861,7 +866,7 @@ function populateLanguageSelects(node) {
   });
 }
 
-/* Reading/writing questions only apply to the 6–12 anni course. */
+/* Reading/writing questions only apply to the 6–13 anni course. */
 function showReadWriteFields(node, courseId) {
   const show = courseId === 'sds_6_12';
   node.querySelectorAll('[data-rw]').forEach((f) => {
@@ -901,7 +906,7 @@ function applyTestGate(node) {
 
 /* A child is sent to the language test when either:
    • they attended last year in an advanced class (Berg / Leonardo), or
-   • they qualify for Primaria (6–12 anni) and did NOT attend last year.
+   • they qualify for Primaria (6–13 anni) and did NOT attend last year.
    Side-effect-free — safe to call anywhere. */
 function childNeedsTest(b) {
   if (childIsWaitlisted(b)) return false; // closed course → waitlist, not test
@@ -1068,7 +1073,7 @@ function addChild() {
 
   // Populate language dropdowns (same options for every course)
   populateLanguageSelects(node);
-  showReadWriteFields(node, null); // read/write hidden until a 6–12 anni DOB is entered
+  showReadWriteFields(node, null); // read/write hidden until a 6–13 anni DOB is entered
 
   // Custom date-of-birth control (Giorno / Mese / Anno)
   initDateControl(node);
@@ -1077,7 +1082,7 @@ function addChild() {
   const dob = node.querySelector('[data-field="dob"]');
   dob.addEventListener('change', () => applyEligibility(node));
 
-  // Returning-student question (6–12 anni): unique radio group + live test gate
+  // Returning-student question (6–13 anni): unique radio group + live test gate
   const attName = 'attended_' + (sdsUid++);
   node.querySelectorAll('[data-field="attended"]').forEach((r) => {
     r.name = attName;
