@@ -1418,7 +1418,10 @@ async function buildPayload() {
       multiDisc = Math.min(multiDisc, afterBoth);
     }
     c.courseMultiDiscount = multiDisc;
-    c.courseAmount = c.waitlisted ? 0 : afterBoth - multiDisc; // waitlisted children don't pay now
+    // Net for the course. Waitlisted children don't pay NOW (they're excluded from the combined
+    // total + paySummary above), but we still store what they'd owe once accepted off the waitlist,
+    // so the backend can bill the correct amount when the school ticks "Accetta da lista d'attesa".
+    c.courseAmount = afterBoth - multiDisc;
   });
 
   return {
