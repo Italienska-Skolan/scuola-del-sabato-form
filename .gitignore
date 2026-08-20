@@ -1,9 +1,15 @@
 # Local-only files — kept out of the public GitHub Pages repo
 Code.gs
 CLAUDE.md
+HANDOVER.md
 .claude/
 .DS_Store
 *.ai
+
+# Backend / data helpers — never publish (the last one contains parents' PII)
+*Apps Script.gs
+Lista genitori*.xlsx
+esempi-email/
 
 # Documentation tooling + generated docs (local only)
 node_modules/
