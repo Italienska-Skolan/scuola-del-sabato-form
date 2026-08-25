@@ -578,6 +578,12 @@
         </label>
         <div class="sds-error">È necessario confermare la lista d'attesa.</div>
       </div>
+      <div class="sds-field full" data-waitlist-semester hidden>
+        <label>Se un posto si libera, per quali quadrimestri vuoi iscrivere il bambino/a? <span class="req">*</span></label>
+        <div class="sds-radio-group sds-semester-group" data-waitlist-semester-group></div>
+        <div class="hint">Iscrivendoti per <strong>entrambi i quadrimestri</strong> ottieni uno sconto.</div>
+        <div class="sds-error">Seleziona un'opzione.</div>
+      </div>
     </div>
 
     <!-- Language assessment (per child) -->
@@ -799,6 +805,16 @@ function applyEligibility(node) {
   if (isClosed && wlMsg) wlMsg.textContent = closedInfo.message || DEFAULT_WAITLIST_MSG;
   if (!isClosed) { if (wlAckBox) wlAckBox.checked = false; if (wlAckWrap) wlAckWrap.classList.remove('invalid'); }
 
+  // Per-child semester choice — only for a waitlisted child (used if/when they're accepted).
+  const wlSemWrap = node.querySelector('[data-waitlist-semester]');
+  if (wlSemWrap) {
+    wlSemWrap.hidden = !isClosed;
+    if (!isClosed) {
+      wlSemWrap.classList.remove('invalid');
+      node.querySelectorAll('[data-field="waitlist_semester"]').forEach((r) => { r.checked = false; });
+    }
+  }
+
   if (elig.error) {
     fillSelect(courseSel, []);
     courseSel.value = '';
@@ -840,8 +856,9 @@ function applyEligibility(node) {
 
   // Giocar Cantando (and an out-of-range age) skip the whole language assessment + the
   // returning-student class dropdown — override whatever applyTestGate just set, and clear
-  // any stale language answers so they aren't sent.
-  const hideLang = ineligible || isClosed || elig.courseId === 'giocar_cantando';
+  // any stale language answers so they aren't sent. Waitlisted children DO answer the language
+  // questions (so the data is on file for when they're accepted), so isClosed no longer hides them.
+  const hideLang = ineligible || elig.courseId === 'giocar_cantando';
   if (hideLang) {
     node.querySelectorAll('[data-hide-on-test]').forEach((el) => { el.hidden = true; });
     node.querySelectorAll('select[data-lang]').forEach((s) => { s.value = ''; });
@@ -935,7 +952,9 @@ function childNeedsTest(b) {
 const IT_LANG_FIELDS = ['it_understand', 'it_speak', 'it_read', 'it_write'];
 function langRequirementFailed(b) {
   const courseId = (b.querySelector('[data-field="course"]') || {}).value;
-  if (courseId !== 'sds_6_12' || childNeedsTest(b)) return false;
+  // Waitlisted children still answer the questions, but a "No" doesn't block their waitlist
+  // registration — admission (and any test) is handled later, if a place opens up.
+  if (courseId !== 'sds_6_12' || childNeedsTest(b) || childIsWaitlisted(b)) return false;
   return IT_LANG_FIELDS.some((f) => {
     const sel = b.querySelector('[data-field="' + f + '"]');
     return sel && sel.value === 'No';
@@ -1106,6 +1125,22 @@ function addChild() {
     sel.addEventListener('change', () => applyLangBlock(node));
   });
 
+  // Waitlist semester choice (per child; shown only when the child's course is closed). No option
+  // is pre-selected, so the parent makes a conscious choice; validated when the child is waitlisted.
+  const wlSemName = 'wl_semester_' + (sdsUid++);
+  const wlSemGroup = node.querySelector('[data-waitlist-semester-group]');
+  if (wlSemGroup) {
+    SDS_CONFIG.semesters.forEach((s) => {
+      const label = document.createElement('label');
+      label.innerHTML = '<input type="radio" name="' + wlSemName + '" data-field="waitlist_semester" value="' +
+        s.id + '" /> ' + escapeHtml(s.name);
+      wlSemGroup.appendChild(label);
+    });
+    wlSemGroup.querySelectorAll('input').forEach((r) => {
+      r.addEventListener('change', () => node.querySelector('[data-waitlist-semester]').classList.remove('invalid'));
+    });
+  }
+
   // Remove button
   node.querySelector('[data-remove-child]').addEventListener('click', () => {
     node.remove();
@@ -1148,6 +1183,7 @@ function collectChildren() {
       needsTest: childNeedsTest(b),
       waitlisted: childIsWaitlisted(b),
       waitlistAck: (() => { const cb = b.querySelector('[data-field="waitlist_ack"]'); return cb ? cb.checked : false; })(),
+      waitlistSemester: (() => { const r = b.querySelector('[data-field="waitlist_semester"]:checked'); return r ? r.value : ''; })(),
       waitlist: 'No',
       it_understand: val('it_understand'), it_speak: val('it_speak'),
       it_read: val('it_read'), it_write: val('it_write'),
@@ -1320,12 +1356,19 @@ function validate() {
       }
     }
 
-    // Waitlisted children (closed course) must confirm they want the waitlist.
+    // Waitlisted children (closed course) must confirm they want the waitlist AND pick a semester
+    // (used if/when a place opens up).
     if (childIsWaitlisted(b)) {
       const wlBox = b.querySelector('[data-field="waitlist_ack"]');
       if (wlBox && !wlBox.checked) {
         b.querySelector('[data-waitlist-ack]').classList.add('invalid');
         if (!firstInvalid) firstInvalid = wlBox;
+      }
+      const wlSem = b.querySelector('[data-field="waitlist_semester"]:checked');
+      if (!wlSem) {
+        const wrap = b.querySelector('[data-waitlist-semester]');
+        if (wrap) wrap.classList.add('invalid');
+        if (!firstInvalid) firstInvalid = b.querySelector('[data-waitlist-semester-group]');
       }
     }
 
@@ -1399,11 +1442,14 @@ async function buildPayload() {
   const passQualifies = (regularCount + testCount) >= 2 && multiPer > 0;
   let loneRegularRolled = false;
   children.forEach((c) => {
-    c.semester = sem.id; c.semesterLabel = sem.name; c.semesterCount = sem.count;
+    // Waitlisted children pick their OWN semester (applied if/when they're accepted); everyone else
+    // shares the family choice. semesterById falls back to the first option if none was chosen.
+    const childSem = c.waitlisted ? semesterById(c.waitlistSemester) : sem;
+    c.semester = childSem.id; c.semesterLabel = childSem.name; c.semesterCount = childSem.count;
     const course = SDS_CONFIG.courses.find((x) => x.id === c.courseId);
-    c.courseGross = course ? (sem.count === 2 ? course.price * 2 : course.price) : 0;
+    c.courseGross = course ? (childSem.count === 2 ? course.price * 2 : course.price) : 0;
     const afterBoth = course
-      ? (sem.count === 2 ? (course.yearPrice != null ? course.yearPrice : course.price * 2) : course.price)
+      ? (childSem.count === 2 ? (course.yearPrice != null ? course.yearPrice : course.price * 2) : course.price)
       : 0;
     let multiDisc = 0;
     if (course && !c.waitlisted) {
