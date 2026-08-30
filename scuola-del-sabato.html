@@ -578,9 +578,9 @@
         </label>
         <div class="sds-error">È necessario confermare la lista d'attesa.</div>
       </div>
-      <div class="sds-field full" data-waitlist-semester hidden>
-        <label>Se un posto si libera, per quali quadrimestri vuoi iscrivere il bambino/a? <span class="req">*</span></label>
-        <div class="sds-radio-group sds-semester-group" data-waitlist-semester-group></div>
+      <div class="sds-field full" data-child-semester hidden>
+        <label>Per quali quadrimestri vuoi iscrivere il bambino/a? <span class="req">*</span></label>
+        <div class="sds-radio-group sds-semester-group" data-child-semester-group></div>
         <div class="hint">Iscrivendoti per <strong>entrambi i quadrimestri</strong> ottieni uno sconto.</div>
         <div class="sds-error">Seleziona un'opzione.</div>
       </div>
@@ -804,16 +804,8 @@ function applyEligibility(node) {
   if (wlAckWrap) wlAckWrap.hidden = !isClosed;
   if (isClosed && wlMsg) wlMsg.textContent = closedInfo.message || DEFAULT_WAITLIST_MSG;
   if (!isClosed) { if (wlAckBox) wlAckBox.checked = false; if (wlAckWrap) wlAckWrap.classList.remove('invalid'); }
-
-  // Per-child semester choice — only for a waitlisted child (used if/when they're accepted).
-  const wlSemWrap = node.querySelector('[data-waitlist-semester]');
-  if (wlSemWrap) {
-    wlSemWrap.hidden = !isClosed;
-    if (!isClosed) {
-      wlSemWrap.classList.remove('invalid');
-      node.querySelectorAll('[data-field="waitlist_semester"]').forEach((r) => { r.checked = false; });
-    }
-  }
+  // (The per-child semester control's visibility is handled in applyTestGate, which also runs on the
+  // "attended" change — so it reacts to a child becoming a test case, not just to the course/DOB.)
 
   if (elig.error) {
     fillSelect(courseSel, []);
@@ -928,6 +920,25 @@ function applyTestGate(node) {
     if (!needsTest && ackBox) { ackBox.checked = false; ackWrap.classList.remove('invalid'); }
   }
   node.querySelectorAll('[data-hide-on-test]').forEach((el) => { el.hidden = needsTest; });
+
+  // Per-child semester choice — shown for a TEST child (pays if they pass) OR a WAITLISTED child
+  // (pays if accepted). Both pay later, so both must choose their term up front. Regular paying
+  // children use the family-level selector instead. Runs here so it reacts to the "attended" answer.
+  const waitlisted = childIsWaitlisted(node);
+  const semWrap = node.querySelector('[data-child-semester]');
+  if (semWrap) {
+    const show = needsTest || waitlisted;
+    semWrap.hidden = !show;
+    if (!show) {
+      semWrap.classList.remove('invalid');
+      node.querySelectorAll('[data-field="child_semester"]').forEach((r) => { r.checked = false; });
+    } else {
+      const lbl = semWrap.querySelector('label');
+      if (lbl) lbl.innerHTML = (needsTest
+        ? 'Se supererà il test, per quali quadrimestri vuoi iscriverlo/a?'
+        : 'Se un posto si libera, per quali quadrimestri vuoi iscriverlo/a?') + ' <span class="req">*</span>';
+    }
+  }
   return needsTest;
 }
 
@@ -1125,19 +1136,21 @@ function addChild() {
     sel.addEventListener('change', () => applyLangBlock(node));
   });
 
-  // Waitlist semester choice (per child; shown only when the child's course is closed). No option
-  // is pre-selected, so the parent makes a conscious choice; validated when the child is waitlisted.
-  const wlSemName = 'wl_semester_' + (sdsUid++);
-  const wlSemGroup = node.querySelector('[data-waitlist-semester-group]');
-  if (wlSemGroup) {
+  // Per-child semester choice (shown when the child needs the test OR is waitlisted — i.e. whenever
+  // they'll pay LATER, if/when they pass or are accepted). No option is pre-selected, so the parent
+  // makes a conscious choice; validated in those two cases. Regular paying children use the
+  // family-level selector instead.
+  const childSemName = 'child_semester_' + (sdsUid++);
+  const childSemGroup = node.querySelector('[data-child-semester-group]');
+  if (childSemGroup) {
     SDS_CONFIG.semesters.forEach((s) => {
       const label = document.createElement('label');
-      label.innerHTML = '<input type="radio" name="' + wlSemName + '" data-field="waitlist_semester" value="' +
+      label.innerHTML = '<input type="radio" name="' + childSemName + '" data-field="child_semester" value="' +
         s.id + '" /> ' + escapeHtml(s.name);
-      wlSemGroup.appendChild(label);
+      childSemGroup.appendChild(label);
     });
-    wlSemGroup.querySelectorAll('input').forEach((r) => {
-      r.addEventListener('change', () => node.querySelector('[data-waitlist-semester]').classList.remove('invalid'));
+    childSemGroup.querySelectorAll('input').forEach((r) => {
+      r.addEventListener('change', () => node.querySelector('[data-child-semester]').classList.remove('invalid'));
     });
   }
 
@@ -1183,7 +1196,7 @@ function collectChildren() {
       needsTest: childNeedsTest(b),
       waitlisted: childIsWaitlisted(b),
       waitlistAck: (() => { const cb = b.querySelector('[data-field="waitlist_ack"]'); return cb ? cb.checked : false; })(),
-      waitlistSemester: (() => { const r = b.querySelector('[data-field="waitlist_semester"]:checked'); return r ? r.value : ''; })(),
+      childSemester: (() => { const r = b.querySelector('[data-field="child_semester"]:checked'); return r ? r.value : ''; })(),
       waitlist: 'No',
       it_understand: val('it_understand'), it_speak: val('it_speak'),
       it_read: val('it_read'), it_write: val('it_write'),
@@ -1356,19 +1369,23 @@ function validate() {
       }
     }
 
-    // Waitlisted children (closed course) must confirm they want the waitlist AND pick a semester
-    // (used if/when a place opens up).
+    // Waitlisted children (closed course) must confirm they want the waitlist.
     if (childIsWaitlisted(b)) {
       const wlBox = b.querySelector('[data-field="waitlist_ack"]');
       if (wlBox && !wlBox.checked) {
         b.querySelector('[data-waitlist-ack]').classList.add('invalid');
         if (!firstInvalid) firstInvalid = wlBox;
       }
-      const wlSem = b.querySelector('[data-field="waitlist_semester"]:checked');
-      if (!wlSem) {
-        const wrap = b.querySelector('[data-waitlist-semester]');
+    }
+
+    // Test AND waitlisted children pay later (if they pass / are accepted), so they must pick a
+    // semester up front.
+    if (childNeedsTest(b) || childIsWaitlisted(b)) {
+      const cSem = b.querySelector('[data-field="child_semester"]:checked');
+      if (!cSem) {
+        const wrap = b.querySelector('[data-child-semester]');
         if (wrap) wrap.classList.add('invalid');
-        if (!firstInvalid) firstInvalid = b.querySelector('[data-waitlist-semester-group]');
+        if (!firstInvalid) firstInvalid = b.querySelector('[data-child-semester-group]');
       }
     }
 
@@ -1442,9 +1459,9 @@ async function buildPayload() {
   const passQualifies = (regularCount + testCount) >= 2 && multiPer > 0;
   let loneRegularRolled = false;
   children.forEach((c) => {
-    // Waitlisted children pick their OWN semester (applied if/when they're accepted); everyone else
-    // shares the family choice. semesterById falls back to the first option if none was chosen.
-    const childSem = c.waitlisted ? semesterById(c.waitlistSemester) : sem;
+    // Test and waitlisted children pick their OWN semester (applied if/when they pass or are
+    // accepted); everyone else shares the family choice. semesterById falls back to the first option.
+    const childSem = (c.needsTest || c.waitlisted) ? semesterById(c.childSemester) : sem;
     c.semester = childSem.id; c.semesterLabel = childSem.name; c.semesterCount = childSem.count;
     const course = SDS_CONFIG.courses.find((x) => x.id === c.courseId);
     c.courseGross = course ? (childSem.count === 2 ? course.price * 2 : course.price) : 0;
