@@ -259,6 +259,12 @@
     border: none; font-size: 13px; cursor: pointer; padding: 4px 8px;
   }
   .sds-btn[disabled] { opacity: .55; cursor: not-allowed; }
+  .sds-link-btn {
+    background: none; border: none; padding: 0; margin: 2px 0 16px;
+    font-family: var(--font-body); font-size: 14px; color: var(--isk-blue);
+    cursor: pointer; text-decoration: underline;
+  }
+  .sds-link-btn:hover { color: var(--isk-navy); }
 
   /* Order summary */
   .sds-summary-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
@@ -408,6 +414,12 @@
         <tbody id="sds-summary-body"></tbody>
         <tfoot id="sds-summary-foot"></tfoot>
       </table>
+
+      <button type="button" class="sds-link-btn" id="sds-discount-toggle" hidden>Hai un codice sconto?</button>
+      <div class="sds-field" id="sds-discount-field" hidden>
+        <label for="sds-discount-code">Codice sconto</label>
+        <input type="text" id="sds-discount-code" autocomplete="off" placeholder="Es. SCUOLA2026" />
+      </div>
 
       <div class="sds-support" id="sds-support">
         <h3>Sostieni il progetto <span style="font-weight:400;color:var(--isk-muted);font-size:14px">(facoltativo)</span></h3>
@@ -648,7 +660,7 @@
    ===================================================================== */
 const SDS_CONFIG = {
   // Apps Script web-app deployment URL (doPost). Paste after deploying.
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbztjGCcdsip7_MkclzQbGzgoYXqzdY6f1BriTrmbRbtkMzfVRn6N-NABVzlj-NaEqRWwQ/exec',
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbzqhvpgI5WuocZRfOp45EgdXeAwV7-D1kM2F2TnNObCHsfEf8rzJ-bzqrrQeg7WjoszZw/exec',
 
   maxChildren: 5,
   currency: 'SEK',
@@ -747,6 +759,7 @@ function computeEligibility(dobStr) {
    Fail-open: if the fetch fails, the map stays empty and every course is treated as open. */
 let courseStatus = {};
 async function loadCourseStatus() {
+  let hasActiveDiscounts = true; // fail-open: a network hiccup shouldn't hide a real discount code
   try {
     const res = await fetch(SDS_CONFIG.appsScriptUrl, { method: 'GET' });
     const data = await res.json().catch(() => null);
@@ -760,7 +773,10 @@ async function loadCourseStatus() {
       });
       courseStatus = map;
     }
-  } catch (e) { /* fail-open: leave all courses open */ }
+    if (data) hasActiveDiscounts = !!data.hasActiveDiscounts;
+  } catch (e) { /* fail-open: leave all courses open + keep the discount link visible */ }
+  const discountToggle = document.getElementById('sds-discount-toggle');
+  if (discountToggle) discountToggle.hidden = !hasActiveDiscounts;
   childrenEl.querySelectorAll('[data-child]').forEach(applyEligibility); // re-apply with statuses
 }
 
@@ -1522,6 +1538,7 @@ async function buildPayload() {
     },
     testRegistration: children.some((c) => c.needsTest),
     consent: form.consent.checked,
+    discountCode: (document.getElementById('sds-discount-code').value || '').trim(),
     submittedAt: new Date().toISOString(),
   };
 }
@@ -1694,8 +1711,24 @@ function initSupportControls() {
   });
 }
 
+/* Optional discount code — a plain link reveals the input (kept hidden by default, since almost
+   no one has one). Validated and applied entirely server-side (see Code.gs applyDiscountCode_): the
+   frontend never knows which emails/codes exist, it just forwards whatever was typed. */
+function initDiscountToggle() {
+  const toggle = document.getElementById('sds-discount-toggle');
+  const field = document.getElementById('sds-discount-field');
+  const input = document.getElementById('sds-discount-code');
+  toggle.addEventListener('click', () => {
+    const show = field.hidden;
+    field.hidden = !show;
+    toggle.textContent = show ? 'Nascondi il codice sconto' : 'Hai un codice sconto?';
+    if (show) input.focus(); else input.value = '';
+  });
+}
+
 initSemesterSelector();
 initSupportControls();
+initDiscountToggle();
 
 // Start with one child block
 addChild();
